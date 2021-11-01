@@ -1,0 +1,8 @@
+{
+  "challenge_id": "iclr-2021-learn-to-race",
+  "authors": [
+    "aicrowd-bot"
+  ],
+  "description": "Open-Unmix Separation model",
+  "gpu": true
+}
