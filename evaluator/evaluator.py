@@ -38,7 +38,7 @@ class Learn2RaceEvaluator:
 
     @timeout_decorator.timeout(1 * 60 * 60)
     def train(self):
-        logger.info("Starting pre-evaluation phase")
+        logger.info("Starting one-hour 'practice' phase")
         self.agent.training(self.env)
 
     def evaluate(self):

@@ -35,8 +35,8 @@ class BaseAgent(ABC):
 
     def training(self, env):
         '''
-        Stage 2 ONLY.
-        Training loop for the agent during the one-hour practice period.
+        Training loop
+        - Local development OR Stage 2 'practice' phase
         '''
         pass
 

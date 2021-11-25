@@ -38,7 +38,7 @@ The challenge consists of two stages:
 
 ![](https://i.imgur.com/xzQkwKV.jpg)
 
-- In **Stage 2**, participants will submit their models (with checkpoints) to AICrowd for training on an unseen track for a time budget of one hour, during which the number of safety infractions will be accumulated as one of the evaluation metrics. After the one-hour ‘practice’ period, the agent will be evaluated on the unseen track. Each team may submit up to three times for this stage, and the best results will be used for the final ranking. This is intended to give contestants a chance to deal with bugs or submission errors.
+- In **Stage 2**, participants will submit their models (with checkpoints) to AICrowd for training on an unseen track for a time budget of one hour, during which the number of safety infractions will be accumulated as one of the evaluation metrics. After the one-hour ‘practice’ period, the agent will be evaluated on the unseen track. Each team may submit up to three times for this stage, and the best results will be used for the final ranking. This is intended to give participants a chance to deal with bugs or submission errors.
 
 //todo: Add a flow chart for Stage 2  
 
@@ -48,13 +48,13 @@ The challenge consists of two stages:
 #  Getting Started
 1. **Sign up** to join the competition [on the AIcrowd website](https://www.aicrowd.com/challenges/iclr-2021-learn-to-race/).
 2. **Download** the Arrival Arrival Autonomous Racing Simulator [from this link](https://learn-to-race.org/sim/).  
-2. **Clone** this repo and start developing your solution.
+2. **Clone** this repo and start developing your autonomous racing agent.
 3. **Develop** your autonomous racing agents following the template in [how to write your own agent](#how-to-write-your-own-agent) section.
-4. [**Submit**](#how-to-submit-a-model) your trained models to [AIcrowd Gitlab](https://gitlab.aicrowd.com) for evaluation [(full instructions below)](#how-to-submit-a-model). The automated evaluation setup will evaluate the submissions against the test dataset to compute and report the metrics on the leaderboard of the competition.
+4. [**Submit**](#how-to-submit-a-model) your trained models to [AIcrowd Gitlab](https://gitlab.aicrowd.com) for evaluation [(full instructions below)](#how-to-submit-a-model). The automated evaluation setup will evaluate the submissions on the racetrack and report the metrics on the leaderboard of the competition.
 
 # How to write your own agent?
 
-We recommend that you place the code for all your agents in the `agents` directory (though it is not mandatory). You should implement the `select_action` method, along with other methods as specified in the [`BaseAgent`](agents/base.py) class. For Stage 2 of the competition, you should also implement the `training` method for interacting with the environment during the one-hour 'practice' period.  
+We recommend that you place the code for all your agents in the `agents` directory (though it is not mandatory). You should implement the `select_action` method, along with other methods as specified in the [`BaseAgent`](agents/base.py) class. You should also implement the `training` method for local development and for the one-hour 'practice' period in Stage 2.  
 
 ```python
 from agents.base import BaseAgent
@@ -85,7 +85,12 @@ class MyAgent(BaseAgent):
             action: np.array (2,)
             action should be in the form of [\delta, a], where \delta is the normalized steering angle, and a is the normalized acceleration.
         '''
-        
+
+    def training(self, env):
+        '''
+        Implement the training loop here.
+        - Local development OR Stage 2 'practice' phase
+        '''
 ```
 
 Update the `SubmissionConfig` in [config.py](config.py#L5) to use your new agent class instead of the `RandomAgent`.
@@ -110,7 +115,7 @@ You can add your SSH Keys to your GitLab account by going to your profile settin
     pip install -r requirements.txt
     ```
 
-4. Try out the random agent behaviour by running `python rollout.py`.
+4. Try out the random agent by running `python rollout.py`. You should start the simulator first, by running `bash <simulator_path>/ArrivalSim-linux-0.7.1.188691/LinuxNoEditor/ArrivalSim.sh -openGL`.
 
 5. Write your own agent as described in [how to write your own agent](#how-to-write-your-own-agent) section.
 
@@ -177,8 +182,9 @@ This JSON is used to map your submission to the challenge - so please remember t
 
 
 ## Local Evaluation
-- Participants can run the evaluation protocol for their agent locally with or without any constraint, to benchmark their agent's efficiency privately.
-- Participants may familiarize themselves with the code base by trying out the random agent, as a minimal example, by running `python rollout.py`. 
+- Participants can run the evaluation protocol for their agent locally with or without any constraint posed by the Challenge to benchmark their agents privately.
+- Remember to start the simulator first, by executing `bash <simulator_path>/ArrivalSim-linux-0.7.1.188691/LinuxNoEditor/ArrivalSim.sh -openGL`.
+- Participants can familiarize themselves with the code base by trying out the random agent, as a minimal example, by running `python rollout.py`. 
 - Upon finishing the `select_action` method in the agent class, one should be able to execute the `evaluation_routine` method in `rollout.py`.
 - One should write the training procedures in the `training` method in the agent class, and then one can execute the `training_routine` method in `rollout.py`.
 

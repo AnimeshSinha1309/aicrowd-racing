@@ -35,7 +35,9 @@ def run_evaluation():
     evaluator.create_env(["Thruxton"])
     evaluator.init_agent()
 
+    ## Local development OR Stage 2 'practice' phase
     training_routine(evaluator)
+    ## Evaluation
     evaluation_routine(evaluator)
 
 
