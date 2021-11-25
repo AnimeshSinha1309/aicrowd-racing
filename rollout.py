@@ -8,21 +8,18 @@ from config import SubmissionConfig, SimulatorConfig, EnvConfig
 
 pre_evaluate_model_file, pre_evaluate_model_path = tempfile.mkstemp()
 
-
-def pre_evaluate(evaluator):
+def training_routine(evaluator):
     try:
-        evaluator.pre_evaluate()
+        evaluator.train()
     except timeout_decorator.TimeoutError:
         logger.info("Stopping pre-evaluation run")
 
     evaluator.save_agent_model(pre_evaluate_model_path)
 
-
-def rollout(evaluator):
+def evaluation_routine(evaluator):
     evaluator.load_agent_model(pre_evaluate_model_path)
     scores = evaluator.evaluate()
     logger.success(f"Average metrics: {scores}")
-
 
 def run_evaluation():
     submission_config = SubmissionConfig()
@@ -38,8 +35,8 @@ def run_evaluation():
     evaluator.create_env(["Thruxton"])
     evaluator.init_agent()
 
-    pre_evaluate(evaluator)
-    rollout(evaluator)
+    training_routine(evaluator)
+    evaluation_routine(evaluator)
 
 
 if __name__ == "__main__":

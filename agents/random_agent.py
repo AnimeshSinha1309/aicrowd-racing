@@ -6,23 +6,25 @@ from agents.base import BaseAgent
 
 class RandomAgent(BaseAgent):
     def __init__(self):
-        model_path = "models/random_agent_bounds.json"
-        self.model = None
-        self.load_model(model_path)
-
-    def compute_action(self, state):
-        return np.random.random(self.model["dimensions"])
-
-    def register_reset(self, state):
-        pass
-
-    def pre_evaluate(self, env):
-        time.sleep(60*5)
-
-    def load_model(self, path):
-        with open(path) as fp:
-            self.model = json.load(fp)
-
-    def save_model(self, path):
-        with open(path, "w") as fp:
-            json.dump({"dimensions": 2}, fp)
+        super().__init__()
+        
+    def select_action(self, obs) -> np.array:
+        return self.action_space.sample()
+    
+    def register_reset(self, obs) -> np.array:
+        return self.select_action(obs)
+        
+    def training(self, env):
+        info = {}
+        done = False
+        obs = self.env.reset()
+        
+        for _ in range(300):
+            action = self.agent.select_action(obs)
+            obs, reward, done, info = self.env.step(action)
+        
+            if done:
+                obs = self.env.reset()
+                done = False
+                
+            ## Update your agent

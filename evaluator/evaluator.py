@@ -37,9 +37,9 @@ class Learn2RaceEvaluator:
         self.agent.save_model(path)
 
     @timeout_decorator.timeout(1 * 60 * 60)
-    def pre_evaluate(self):
+    def train(self):
         logger.info("Starting pre-evaluation phase")
-        self.agent.pre_evaluate(self.env)
+        self.agent.training(self.env)
 
     def evaluate(self):
         """Evaluate the episodes."""
@@ -53,7 +53,7 @@ class Learn2RaceEvaluator:
             action = self.agent.register_reset(state)
             while not done:
                 state, reward, done, info = self.env.step(action)
-                action = self.agent.compute_action(state)
+                action = self.agent.select_action(state)
             self._record_metrics(ep, info["metrics"])
 
     def _record_metrics(self, episode, metrics):

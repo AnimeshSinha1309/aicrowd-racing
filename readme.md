@@ -1,4 +1,4 @@
-![Learn to Race Banner](docs.l2r_banner.jpg)
+![Learn to Race Banner](docs/l2r_banner.jpg)
 
 # [Learn to Race Challenge](https://www.aicrowd.com/challenges/iclr-2021-learn-to-race/) | Starter Kit 
 [![Discord](https://img.shields.io/discord/565639094860775436.svg)](https://discord.gg/fNRrSvZkry)
@@ -20,24 +20,24 @@ If you are resource-constrained or would not like to setup everything in your sy
 # Table of Contents
 
 1. [Competition Overview](#competition-overview)
-3. [Getting Started](#how-to-start-participating)
-4. [How do I specify my software runtime / dependencies?](#how-do-i-specify-my-software-runtime-dependencies-)
-5. [What should my code structure be like ?](#what-should-my-code-structure-be-like-)
-6. [How to make submission](#how-to-make-submission)
-7. [Other concepts](#other-concepts)
-8. [Important links](#-important-links)
+2. [Getting Started](#how-to-start-participating)
+3. [How do I specify my software runtime / dependencies?](#how-do-i-specify-my-software-runtime-dependencies-)
+4. [What should my code structure be like ?](#what-should-my-code-structure-be-like-)
+5. [How to make submission](#how-to-make-submission)
+6. [Other concepts](#other-concepts)
+7. [Important links](#-important-links)
 
 
 #  Competition Overview
 The Learn to Race Challenge is an opportunity for researchers and machine learning enthusiasts to test their skills by developing autonomous agents that can adhere to safety specifications in high-speed racing. Racing demands each vehicle to drive at its physical limits with barely any margin for safety, when any infraction could lead to catastrophic failures. Given this inherent tension, we envision autonomous racing to serve as a particularly challenging proving ground for safe learning algorithms.
 
-## Competition Stages
+### Competition Stages
 The challenge consists of two stages: 
 - In **Stage 1**, participants will train their models locally, and then upload submit model checkpoints to AICrowd for evaluation on *Thruxton Circuit*, which is included in the Learn-to-Race environment. Each team will be able to submit agents to the evaluation service with a limit of 1 successful submission every 24 hours. The top 10 teams on the leader board will enter **Stage 2**.
 
 ![](https://i.imgur.com/xzQkwKV.jpg)
 
-- In **Stage 2**, participants will submit their models (with checkpoints) to AICrowd for training on an unseen track for a time budget of one hour, during which the number of safety infractions will be accumulated as one of the evaluation metrics. After the one-hour ‘practice’ period, the agent will be evaluated on the unseen track. Each team may submit up to three times for this stage, and the best results will be used for the final ranking. This is intended to give contestants a chance to deal with bugs or submission errors, gracefully.
+- In **Stage 2**, participants will submit their models (with checkpoints) to AICrowd for training on an unseen track for a time budget of one hour, during which the number of safety infractions will be accumulated as one of the evaluation metrics. After the one-hour ‘practice’ period, the agent will be evaluated on the unseen track. Each team may submit up to three times for this stage, and the best results will be used for the final ranking. This is intended to give contestants a chance to deal with bugs or submission errors.
 
 //todo: Add a flow chart for Stage 2  
 
@@ -53,7 +53,7 @@ The challenge consists of two stages:
 
 # How to write your own agent?
 
-We recommend that you place the code for all your agents in the `agents` directory (though it is not mandatory). Any agent you write should implement the `compute_action` and `pre_evaluate` methods as follows.
+We recommend that you place the code for all your agents in the `agents` directory (though it is not mandatory). You should implement the `select_action` method, along with other methods as specified in the [`BaseAgent`](agents/base.py) class. For Stage 2 of the competition, you should also implement the `training` method for interacting with the environment during the one-hour 'practice' period.  
 
 ```python
 from agents.base import BaseAgent
@@ -61,12 +61,28 @@ from agents.base import BaseAgent
 
 class MyAgent(BaseAgent):
     def __init__(self):
-        # Do something here
-        pass
+	super.__init__()
+      	## Initialize your agent, e.g. 
+	self.model.load_model(path)
 
-    def select_action(self, state):
-        # Do something here
-        return 1  # return some action
+    def select_action(self, obsession):
+        '''
+        # Outputs action given the current observation
+        obs: a dictionary
+            During local development, the participants may specify their desired observations.
+            During evaluation on AICrowd, the participants will have access to
+            obs =
+            {
+              'CameraFrontRGB': front_img, # numpy array of shape (width, height, 3)
+              'CameraLeftRGB': left_img, # numpy array of shape (width, height, 3)
+              'CameraRightRGB': right_img, # numpy array of shape (width, height, 3)
+              'track_id': track_id, # integer value associated with a specific racetrack
+              'speed': speed # float value of vehicle speed in m/s
+            }
+        returns:
+            action: np.array (2,)
+            action should be in the form of [\delta, a], where \delta is the normalized steering angle, and a is the normalized acceleration.
+        '''
         
 ```
 
@@ -145,14 +161,24 @@ This JSON is used to map your submission to the challenge - so please remember t
 **Best of Luck** :tada: :tada:
 
 # Other Concepts
+## Evaluation Metrics
+- **Success Rate**: Each race track is partitioned into a fixed number of segments and the success rate is calculated as the number of successfully completed segments over the total number of segments. If the agent fails at a certain segment, it will respawn stationarily at the beginning of the next segment. If the agent successfully completes a segment, it will continue on to the next segment carrying over the current speed.
+- **Average Speed**: Average speed is defined as the total distance traveled divided by total tome.
+- **Number of Safety Infractions** (Stage 2 ONLY): The number of safety infractions is accumulated during the 1-hour ‘practice’ period in Stage 2 of the competition. The agent is considered to have incurred a safety infraction if 2 wheels of the vehicle leave the drivable area, the vehicle collides with an object, or does not progress for a number of steps (e.g. stuck). In Learn-to-Race, the agent is considered having failed upon any safety infraction. 
+
+## Ranking Criteria
+- In Stage 1, the submissions will first be ranked on success rate, and then submissions with the same success rate will be ranked on average speed.
+- In Stage 2, the submissions will first be ranked on success rate, and then submissions with the same success rate will be ranked on a weighted sum of the total number of safety infractions and the average speed. 
 
 ## Time constraints
+- To prevent the participants from achieving a high success rate by driving very slowly, the maximum episode length will be set based on an average speed of 30km/h. The evaluation will terminate if the maximum episode length is reached and metrics will be computed based on performance up till that point.   
 
-// todo: Add time constraints (+ timestep budget, max episodes, etc.,)
 
 ## Local Evaluation
-
-// todo: How to run evaluations locally? (ideally just run `python rollout.py` after setup)
+- Participants can run the evaluation protocol for their agent locally with or without any constraint, to benchmark their agent's efficiency privately.
+- Participants may familiarize themselves with the code base by trying out the random agent by running `python rollout.py`. 
+= Upon finishing the `select_action` method in the agent class, one should be able to execute the `evaluation_routine` method in `rollout.py`.
+- One should write the training procedures in the `training` method in the agent class, and then one can execute the `training_routine` method in `rollout.py`.
 
 ## Contributing
 
