@@ -10,8 +10,9 @@ This repository is the Learn to Race Challenge **Submission template and Starter
 *  **The procedure** for best practices and information on how we evaluate your agent, etc.
 *  **Starter code** for you to get started!
 
-//todo: Add starter code
+
 <!--
+//todo: Add starter code
 > **NOTE:** 
 If you are resource-constrained or would not like to setup everything in your system, you can make your submission from inside Google Colab too. [**Check out the beta version of the Notebook.**](https://colab.research.google.com/drive/14FpktUXysnjIL165hU3rTUKPHo4-YRPh?usp=sharing)
 -->
@@ -63,9 +64,10 @@ class MyAgent(BaseAgent):
     def __init__(self):
 	super.__init__()
       	## Initialize your agent, e.g. 
+	self.model = ...
 	self.model.load_model(path)
 
-    def select_action(self, obsession):
+    def select_action(self, obs):
         '''
         # Outputs action given the current observation
         obs: a dictionary
@@ -161,23 +163,23 @@ This JSON is used to map your submission to the challenge - so please remember t
 **Best of Luck** :tada: :tada:
 
 # Other Concepts
-## Evaluation Metrics
+### Evaluation Metrics
 - **Success Rate**: Each race track is partitioned into a fixed number of segments and the success rate is calculated as the number of successfully completed segments over the total number of segments. If the agent fails at a certain segment, it will respawn stationarily at the beginning of the next segment. If the agent successfully completes a segment, it will continue on to the next segment carrying over the current speed.
 - **Average Speed**: Average speed is defined as the total distance traveled divided by total tome.
 - **Number of Safety Infractions** (Stage 2 ONLY): The number of safety infractions is accumulated during the 1-hour ‘practice’ period in Stage 2 of the competition. The agent is considered to have incurred a safety infraction if 2 wheels of the vehicle leave the drivable area, the vehicle collides with an object, or does not progress for a number of steps (e.g. stuck). In Learn-to-Race, the agent is considered having failed upon any safety infraction. 
 
-## Ranking Criteria
+### Ranking Criteria
 - In Stage 1, the submissions will first be ranked on success rate, and then submissions with the same success rate will be ranked on average speed.
 - In Stage 2, the submissions will first be ranked on success rate, and then submissions with the same success rate will be ranked on a weighted sum of the total number of safety infractions and the average speed. 
 
-## Time constraints
+### Time constraints
 - To prevent the participants from achieving a high success rate by driving very slowly, the maximum episode length will be set based on an average speed of 30km/h. The evaluation will terminate if the maximum episode length is reached and metrics will be computed based on performance up till that point.   
 
 
 ## Local Evaluation
 - Participants can run the evaluation protocol for their agent locally with or without any constraint, to benchmark their agent's efficiency privately.
-- Participants may familiarize themselves with the code base by trying out the random agent by running `python rollout.py`. 
-= Upon finishing the `select_action` method in the agent class, one should be able to execute the `evaluation_routine` method in `rollout.py`.
+- Participants may familiarize themselves with the code base by trying out the random agent, as a minimal example, by running `python rollout.py`. 
+- Upon finishing the `select_action` method in the agent class, one should be able to execute the `evaluation_routine` method in `rollout.py`.
 - One should write the training procedures in the `training` method in the agent class, and then one can execute the `training_routine` method in `rollout.py`.
 
 ## Contributing
