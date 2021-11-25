@@ -24,11 +24,17 @@ class Learn2RaceEvaluator:
         self.env = None
         self.metrics = {}
 
-    def load_agent(self):
+    def init_agent(self):
         """ """
         if self.agent is not None:
             return
         self.agent = self.submission_config.agent()
+
+    def load_agent_model(self, path):
+        self.agent.load_model(path)
+
+    def save_agent_model(self, path):
+        self.agent.save_model(path)
 
     @timeout_decorator.timeout(1 * 60 * 60)
     def pre_evaluate(self):

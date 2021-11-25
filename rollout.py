@@ -1,8 +1,27 @@
+import tempfile
 import timeout_decorator
 from loguru import logger
 
 from evaluator.evaluator import Learn2RaceEvaluator
 from config import SubmissionConfig, SimulatorConfig, EnvConfig
+
+
+pre_evaluate_model_file, pre_evaluate_model_path = tempfile.mkstemp()
+
+
+def pre_evaluate(evaluator):
+    try:
+        evaluator.pre_evaluate()
+    except timeout_decorator.TimeoutError:
+        logger.info("Stopping pre-evaluation run")
+
+    evaluator.save_agent_model(pre_evaluate_model_path)
+
+
+def rollout(evaluator):
+    evaluator.load_agent_model(pre_evaluate_model_path)
+    scores = evaluator.evaluate()
+    logger.success(f"Average metrics: {scores}")
 
 
 def run_evaluation():
@@ -17,16 +36,10 @@ def run_evaluation():
     )
 
     evaluator.create_env(["Thruxton"])
-    evaluator.load_agent()
+    evaluator.init_agent()
 
-    try:
-        evaluator.pre_evaluate()
-    except timeout_decorator.TimeoutError:
-        logger.info("Stopping pre-evaluation run")
-
-    evaluator.evaluate()
-    scores = evaluator.get_average_metrics()
-    logger.success(f"Average metrics: {scores}")
+    pre_evaluate(evaluator)
+    rollout(evaluator)
 
 
 if __name__ == "__main__":
