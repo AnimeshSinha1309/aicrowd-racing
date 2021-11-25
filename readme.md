@@ -1,29 +1,26 @@
-// todo: replace banner
+![Learn to Race Banner](docs.l2r_banner.jpg)
 
-![Learn to Race Banner]()
-
-# [ICLR 2021 - Learn to Race Challenge](https://www.aicrowd.com/challenges/iclr-2021-learn-to-race/) | Starter Kit 
+# [Learn to Race Challenge](https://www.aicrowd.com/challenges/iclr-2021-learn-to-race/) | Starter Kit 
 [![Discord](https://img.shields.io/discord/565639094860775436.svg)](https://discord.gg/fNRrSvZkry)
 
-This repository is the ICLR 2021 Learn to Race Challenge **Submission template and Starter kit**! Clone the repository to compete now!
+This repository is the Learn to Race Challenge **Submission template and Starter kit**! Clone the repository to compete now!
 
 **This repository contains**:
 *  **Documentation** on how to submit your models to the leaderboard
 *  **The procedure** for best practices and information on how we evaluate your agent, etc.
 *  **Starter code** for you to get started!
 
-//todo: Add starter notebook
-
+//todo: Add starter code
+<!--
 > **NOTE:** 
 If you are resource-constrained or would not like to setup everything in your system, you can make your submission from inside Google Colab too. [**Check out the beta version of the Notebook.**](https://colab.research.google.com/drive/14FpktUXysnjIL165hU3rTUKPHo4-YRPh?usp=sharing)
-
+-->
 
 
 # Table of Contents
 
-1. [Competition Procedure](#competition-procedure)
-2. [How to access and use dataset](#how-to-access-and-use-dataset)
-3. [How to start participating](#how-to-start-participating)
+1. [Competition Overview](#competition-overview)
+3. [Getting Started](#how-to-start-participating)
 4. [How do I specify my software runtime / dependencies?](#how-do-i-specify-my-software-runtime-dependencies-)
 5. [What should my code structure be like ?](#what-should-my-code-structure-be-like-)
 6. [How to make submission](#how-to-make-submission)
@@ -31,21 +28,27 @@ If you are resource-constrained or would not like to setup everything in your sy
 8. [Important links](#-important-links)
 
 
-#  Competition Procedure
+#  Competition Overview
+The Learn to Race Challenge is an opportunity for researchers and machine learning enthusiasts to test their skills by developing autonomous agents that can adhere to safety specifications in high-speed racing. Racing demands each vehicle to drive at its physical limits with barely any margin for safety, when any infraction could lead to catastrophic failures. Given this inherent tension, we envision autonomous racing to serve as a particularly challenging proving ground for safe learning algorithms.
 
-The ICLR 2021 Learn to Race Challenge is an opportunity for researchers and machine learning enthusiasts to test their skills by creating a system able to ...
-
-In this challenge, you will train your models locally and then upload them to AIcrowd (via git) to be evaluated. 
-
-**The following is a high level description of how this process works**
-
-// todo: replace image with competition specific one
+## Competition Stages
+The challenge consists of two stages: 
+- In **Stage 1**, participants will train their models locally, and then upload submit model checkpoints to AICrowd for evaluation on *Thruxton Circuit*, which is included in the Learn-to-Race environment. Each team will be able to submit agents to the evaluation service with a limit of 1 successful submission every 24 hours. The top 10 teams on the leader board will enter **Stage 2**.
 
 ![](https://i.imgur.com/xzQkwKV.jpg)
 
+- In **Stage 2**, participants will submit their models (with checkpoints) to AICrowd for training on an unseen track for a time budget of one hour, during which the number of safety infractions will be accumulated as one of the evaluation metrics. After the one-hour ‘practice’ period, the agent will be evaluated on the unseen track. Each team may submit up to three times for this stage, and the best results will be used for the final ranking. This is intended to give contestants a chance to deal with bugs or submission errors, gracefully.
+
+//todo: Add a flow chart for Stage 2  
+
+<!-- **The following is a high level description of how this process works** -->
+
+
+#  Getting Started
 1. **Sign up** to join the competition [on the AIcrowd website](https://www.aicrowd.com/challenges/iclr-2021-learn-to-race/).
+2. **Download** the Arrival Arrival Autonomous Racing Simulator [from this link](https://learn-to-race.org/sim/).  
 2. **Clone** this repo and start developing your solution.
-3. **Train** your models for ... and write your agent as described in [how to write your own agent](#how-to-write-your-own-agent) section.
+3. **Develop** your autonomous racing agents following the template in [how to write your own agent](#how-to-write-your-own-agent) section.
 4. [**Submit**](#how-to-submit-a-model) your trained models to [AIcrowd Gitlab](https://gitlab.aicrowd.com) for evaluation [(full instructions below)](#how-to-submit-a-model). The automated evaluation setup will evaluate the submissions against the test dataset to compute and report the metrics on the leaderboard of the competition.
 
 # How to write your own agent?
@@ -61,16 +64,10 @@ class MyAgent(BaseAgent):
         # Do something here
         pass
 
-    def compute_action(self, state):
+    def select_action(self, state):
         # Do something here
         return 1  # return some action
-
-    def pre_evaluate(self, env):
-        # Do something here
-        # You are responsible to make sure that this function doesn't take
-        # beyond 1 hour. Anything beyond 1 hour will be forcefully stopped
-        # leading to bad state.
-        pass
+        
 ```
 
 Update the `SubmissionConfig` in [config.py](config.py#L5) to use your new agent class instead of the `RandomAgent`.
