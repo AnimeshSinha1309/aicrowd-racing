@@ -25,14 +25,10 @@ def evaluation_routine(evaluator):
 
 
 def run_evaluation():
-    submission_config = SubmissionConfig()
-    simulator_config = SimulatorConfig()
-    env_config = EnvConfig()
-
     evaluator = Learn2RaceEvaluator(
-        submission_config=submission_config,
-        sim_config=simulator_config,
-        env_config=env_config,
+        submission_config=SubmissionConfig,
+        sim_config=SimulatorConfig,
+        env_config=EnvConfig,
     )
 
     evaluator.create_env(["Thruxton"])
