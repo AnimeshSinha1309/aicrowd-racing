@@ -79,15 +79,8 @@ class Learn2RaceEvaluator:
         Your configuration yaml file must contain the keys below.
         """
         self.env = RacingEnv(
-            max_timesteps=self.env_config.max_timesteps,
-            obs_delay=self.env_config.obs_delay,
-            not_moving_timeout=self.env_config.not_moving_timeout,
-            controller_kwargs=self.env_config.controller_kwargs,
-            reward_pol=self.env_config.reward_pol,
-            reward_kwargs=self.env_config.reward_kwargs,
-            action_if_kwargs=self.env_config.action_if_kwargs,
-            pose_if_kwargs=self.env_config.pose_if_kwargs,
-            cameras=self.env_config.cameras,
+            env_kwargs=self.env_config.__dict__,
+            sim_kwargs=self.sim_config.__dict__,
         )
 
         self.env.make(

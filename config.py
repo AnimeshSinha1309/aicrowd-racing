@@ -1,21 +1,23 @@
 from agents.random_agent import RandomAgent
 
 
-class SubmissionConfig:
+class SubmissionConfig(object):
     agent = RandomAgent
     pre_eval_time = 100
     eval_episodes = 10
 
 
-class EnvConfig:
+class EnvConfig(object):
     multimodal = False
-    max_timesteps = 2000
+    max_timesteps = 5000
     obs_delay = 0.1
     not_moving_timeout = 100
     reward_pol = "custom"
+    provide_waypoints = True
     reward_kwargs = {
         "oob_penalty": 5.0,
         "min_oob_penalty": 25.0,
+        "max_oob_penalty": 125.0,
     }
     controller_kwargs = {
         "sim_version": "ArrivalSim-linux-0.7.1.188691",
@@ -52,12 +54,20 @@ class EnvConfig:
     }
 
 
-class SimulatorConfig:
-    racetrack = ["VegasNorthRoad"]
+class SimulatorConfig(object):
+    racetrack = ["Thruxton"]
     active_sensors = [
         "CameraFrontRGB",
     ]
     driver_params = {
         "DriverAPIClass": "VApiUdp",
         "DriverAPI_UDP_SendAddress": "0.0.0.0",
+    }
+    vehicle_params = False
+    camera_params = {
+        "Format": "ColorBGR8",
+        "FOVAngle": 90,
+        "Width": 192,
+        "Height": 144,
+        "bAutoAdvertise": True,
     }

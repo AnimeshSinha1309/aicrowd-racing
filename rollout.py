@@ -8,6 +8,7 @@ from config import SubmissionConfig, SimulatorConfig, EnvConfig
 
 pre_evaluate_model_file, pre_evaluate_model_path = tempfile.mkstemp()
 
+
 def training_routine(evaluator):
     try:
         evaluator.train()
@@ -16,20 +17,18 @@ def training_routine(evaluator):
 
     evaluator.save_agent_model(pre_evaluate_model_path)
 
+
 def evaluation_routine(evaluator):
     evaluator.load_agent_model(pre_evaluate_model_path)
     scores = evaluator.evaluate()
     logger.success(f"Average metrics: {scores}")
 
-def run_evaluation():
-    submission_config = SubmissionConfig()
-    simulator_config = SimulatorConfig()
-    env_config = EnvConfig()
 
+def run_evaluation():
     evaluator = Learn2RaceEvaluator(
-        submission_config=submission_config,
-        sim_config=simulator_config,
-        env_config=env_config,
+        submission_config=SubmissionConfig,
+        sim_config=SimulatorConfig,
+        env_config=EnvConfig,
     )
 
     evaluator.create_env(["Thruxton"])
