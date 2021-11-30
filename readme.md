@@ -163,7 +163,7 @@ This JSON is used to map your submission to the challenge - so please remember t
 
 ## How to make a submission?
 
-👉 [SUBMISSION.md](/docs/SUBMISSION.md)
+👉 [SUBMISSION.md](/docs/submission.md)
 
 **Best of Luck** :tada: :tada:
 
