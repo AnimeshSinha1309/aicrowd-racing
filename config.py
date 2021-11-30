@@ -27,8 +27,8 @@ class EnvConfig:
     action_if_kwargs = {
         "max_accel": 4,
         "min_accel": -1,
-        "max_steer": .3,
-        "min_steer": -.3,
+        "max_steer": 0.3,
+        "min_steer": -0.3,
         "ip": "0.0.0.0",
         "port": 7077,
     }

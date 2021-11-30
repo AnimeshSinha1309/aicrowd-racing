@@ -8,6 +8,7 @@ from config import SubmissionConfig, SimulatorConfig, EnvConfig
 
 pre_evaluate_model_file, pre_evaluate_model_path = tempfile.mkstemp()
 
+
 def training_routine(evaluator):
     try:
         evaluator.train()
@@ -16,10 +17,12 @@ def training_routine(evaluator):
 
     evaluator.save_agent_model(pre_evaluate_model_path)
 
+
 def evaluation_routine(evaluator):
     evaluator.load_agent_model(pre_evaluate_model_path)
     scores = evaluator.evaluate()
     logger.success(f"Average metrics: {scores}")
+
 
 def run_evaluation():
     submission_config = SubmissionConfig()
