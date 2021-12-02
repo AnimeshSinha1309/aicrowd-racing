@@ -2,8 +2,11 @@ from loguru import logger
 import timeout_decorator
 
 from envs.env import RacingEnv
+from collections import defaultdict
+import os
+from common.utils import setup_logging
 
-from config import SubmissionConfig, EnvConfig, SimulatorConfig
+from config import SubmissionConfig, EnvConfig, SimulatorConfig, SACConfig
 
 
 class Learn2RaceEvaluator:
@@ -14,21 +17,34 @@ class Learn2RaceEvaluator:
         submission_config: SubmissionConfig,
         env_config: EnvConfig,
         sim_config: SimulatorConfig,
+        sac_config: SACConfig
     ):
         logger.info("Starting learn to race evaluator")
         self.submission_config = submission_config
         self.env_config = env_config
         self.sim_config = sim_config
+        self.sac_config = sac_config
 
         self.agent = None
         self.env = None
-        self.metrics = {}
+        self.metrics = defaultdict(list)
 
     def init_agent(self):
         """ """
         if self.agent is not None:
             return
-        self.agent = self.submission_config.agent()
+
+        save_path = self.sac_config['save_path']
+        if not os.path.exists(f'{save_path}/runlogs'):
+            os.umask(0)
+            os.makedirs(save_path, mode=0o777, exist_ok=True)
+            os.makedirs(f"{save_path}/runlogs", mode=0o777, exist_ok=True)
+            os.makedirs(f"{save_path}/tblogs", mode=0o777, exist_ok=True)
+
+        loggers = setup_logging(save_path, self.sac_config['experiment_name'], True) 
+
+        loggers[0]('Using random seed: {}'.format(0))
+        self.agent = self.submission_config.agent(self.env, self.sac_config, loggers=loggers) ###
 
     def load_agent_model(self, path):
         self.agent.load_model(path)
@@ -39,12 +55,12 @@ class Learn2RaceEvaluator:
     @timeout_decorator.timeout(1 * 60 * 60)
     def train(self):
         logger.info("Starting one-hour 'practice' phase")
-        self.agent.training(self.env)
+        self.agent.sac_train()
 
     def evaluate(self):
         """Evaluate the episodes."""
         logger.info("Starting evaluation")
-        self.env.eval()
+        # self.env.eval()
 
         for ep in range(self.submission_config.eval_episodes):
             done = False
@@ -79,12 +95,22 @@ class Learn2RaceEvaluator:
         Your configuration yaml file must contain the keys below.
         """
         self.env = RacingEnv(
-            env_kwargs=self.env_config.__dict__,
-            sim_kwargs=self.sim_config.__dict__,
+            max_timesteps=self.env_config.max_timesteps,
+            obs_delay=self.env_config.obs_delay,
+            not_moving_timeout=self.env_config.not_moving_timeout,
+            controller_kwargs=self.env_config.controller_kwargs,
+            reward_pol=self.env_config.reward_pol,
+            reward_kwargs=self.env_config.reward_kwargs,
+            action_if_kwargs=self.env_config.action_if_kwargs,
+            pose_if_kwargs=self.env_config.pose_if_kwargs,
+            camera_if_kwargs=self.env_config.camera_if_kwargs,
+            sensors=self.sim_config.active_sensors
         )
 
         self.env.make(
             level=eval_track,
             multimodal=self.env_config.multimodal,
             driver_params=self.sim_config.driver_params,
+            camera_params=self.sim_config.camera_params,
+            sensors=self.sim_config.active_sensors
         )
