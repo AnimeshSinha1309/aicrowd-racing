@@ -447,7 +447,7 @@ class SACAgent(BaseAgent):
                 pass
 
         elif self.save_episodes and (n_eps+1 % self.cfg['save_freq'] == 0):
-            path_name = f"{self.cfg['save_path']}/{self.cfg['experiment_name']}_episode_{n_eps}.statedict"
+            path_name = f"{self.cfg['model_save_path']}/{self.cfg['experiment_name']}_episode_{n_eps}.statedict"
             self.file_logger(f"Periodic save (save_freq of {self.cfg['save_freq']}) to {path_name}")
             torch.save(self.actor_critic.state_dict(), path_name)
             path_name = f"{self.cfg['save_path']}/{self.cfg['experiment_name']}_episode_{n_eps}.statedict"
