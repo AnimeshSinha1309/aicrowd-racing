@@ -11,6 +11,7 @@ import socket
 import struct
 import threading
 from math import sqrt, cos, sin
+import ipdb as pdb
 
 import numpy as np
 import zmq
@@ -60,7 +61,6 @@ class InvalidActionException(Exception):
 class ActionInterface(object):
     """Action send interface. This class communicates with the simulator and
     sends action requests from the agent.
-
     :param str ip: ip address
     :param int port: port to bind to
     :param float max_steer: maximum steering request, bounded by 1.
@@ -84,7 +84,6 @@ class ActionInterface(object):
 
     def act(self, action):
         """Send action request to the simulator.
-
         :param array-like action: action to send to the simulator in the form:
           [steering, acceleration], expected to be in the range (-1., 1.)
         """
@@ -103,7 +102,6 @@ class ActionInterface(object):
 
     def _check_action(self, action):
         """Check that the action is valid with reference to the action space.
-
         :param array-like action: action to send to the simulator in the form:
           [steering, acceleration], expected to be in the range (-1., 1.)
         """
@@ -117,7 +115,6 @@ class ActionInterface(object):
 class PoseInterface(AbstractInterface):
     """Receives sensor data from the simulator. The data received is in the
     following format:
-
     [0,1,2] steering, gear, mode \n
     [3,4,5] \n
     [6,7,8] acceleration \n
@@ -127,7 +124,6 @@ class PoseInterface(AbstractInterface):
     [18,19,20 21] rpm (by wheel) \n
     [22,23,24,25] brake (by wheel) \n
     [26,27,28,29] torq (by wheel)
-
     :param str ip: ip address
     :param int port: port to bind to
     :param int data_elems: number of elements to listen for, elements are
@@ -150,7 +146,6 @@ class PoseInterface(AbstractInterface):
 
     def get_data(self):
         """Return the most recent data received from the simulator.
-
         :return: data from the simulator
         :rtype: array of length self.data_elems
         """
@@ -173,22 +168,20 @@ class PoseInterface(AbstractInterface):
 
 class CameraInterface(AbstractInterface):
     """Receives images from the simulator.
-
     :param str ip: ip address to listen on
     :param int port: system port
     """
 
-    def __init__(self, ip='tcp://127.0.0.1', port=8008):
+    def __init__(self, addr=None, ip='tcp://127.0.0.1', port=8008):
         ctx = zmq.Context()
         self.sock = ctx.socket(zmq.SUB)
         self.sock.setsockopt(zmq.SUBSCRIBE, b'')
         self.sock.setsockopt(zmq.CONFLATE, 1)
         self.sock.connect(f'{ip}:{port}')
-        self.addr = f'{ip}:{port}'
+        self.addr = f'{ip}:{port}' if not addr else addr
 
     def start(self, img_dims):
         """Starts a thread to listen for images on.
-
         :param tuple img_dims: dimensions of the image to listen for in the
           form: (width, height, depth)
         """
@@ -199,7 +192,6 @@ class CameraInterface(AbstractInterface):
 
     def get_data(self):
         """Return the most recent image(s) received from the simulator.
-
         :return: RGB image of shape (height, width, 3)
         :rtype: numpy.array
         """
@@ -252,7 +244,6 @@ class CameraInterface(AbstractInterface):
 
 class GeoLocation(object):
     """Global to local coordinate conversion class.
-
     :param tuple ref_point: local reference point which serves as the local
       origin in the form (east, north, up)
     """
@@ -267,11 +258,9 @@ class GeoLocation(object):
     def get_corners(center, angle, dimensions):
         """Get the corner's of the vehicle. Assumes the vehicle is perfectly
         rectangular.
-
         :param tuple center: the (x,y) coordinates of the center of the vehicle
         :param float angle: heading of the vehicle in radians
         :param list dimensions: [height, width] of the vehicle in meters
-
         :return: array of (x,y) coordinates in the following order:
           Top_right, Top_left, Bottom_right, Bottom_left
         :rtype: numpy.array
@@ -303,7 +292,6 @@ class GeoLocation(object):
 
     def convert_to_ENU(self, center):
         """Convert latitude/longitude coordinates to ENU coordinates.
-
         :param list center: latitude/longitude coordinates of vehicle
         :return: ENU coordinates of the center of the vehicle in the form:
           [East, North, Up]

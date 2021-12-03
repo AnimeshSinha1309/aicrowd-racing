@@ -30,21 +30,23 @@ def evaluation_routine(evaluator):
 
 def run_evaluation():
     submission_config = SubmissionConfig()
-    simulator_config = SimulatorConfig()
-    env_config = EnvConfig()
     
     yaml = YAML()
-    params = yaml.load(open('params-sac.yaml'))
-    sac_kwargs = resolve_envvars(params['sac_kwargs'], args())
+    params = yaml.load(open('configs/params-sac.yaml'))
+    sac_kwargs = resolve_envvars(params['agent_kwargs'], args())
+
+    sys_params = yaml.load(open("configs/params-env.yaml"))
+    env_kwargs = resolve_envvars(sys_params['env_kwargs'], args)
+    sim_kwargs = resolve_envvars(sys_params['sim_kwargs'], args)
 
     evaluator = Learn2RaceEvaluator(
         submission_config=submission_config,
-        sim_config=simulator_config,
-        env_config=env_config,
+        sim_config=sim_kwargs,
+        env_config=env_kwargs,
         sac_config = sac_kwargs
     )
 
-    evaluator.create_env(["Thruxton"])
+    evaluator.create_env()
     evaluator.init_agent()
 
     ## Local development OR Stage 2 'practice' phase

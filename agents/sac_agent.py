@@ -19,6 +19,7 @@ from agents.base import BaseAgent
 import baselines.core as core
 from common.models.network import resnet18, ActorCritic
 from common.models.vae import VAE
+from common.utils import RecordExperience
 
 ## For Debugging
 from matplotlib import image
@@ -137,9 +138,12 @@ class SACAgent(BaseAgent):
     """
 
 
-    def __init__(self, env, cfg, args = [], loggers=tuple(), save_episodes=True, save_batch_size=256, 
+    def __init__(self, env, agent_kwargs, loggers=tuple(), save_episodes=True, save_batch_size=256, 
                  atol=1e-3, store_from_safe = False, 
                  t_start = 0): ## Use when loading from a checkpoint
+
+        # create the environment               
+        self.env, self.test_env = env, env
 
         # This is important: it allows child classes (that extend this one) to "push up" information
         # that this parent class should log
@@ -151,26 +155,34 @@ class SACAgent(BaseAgent):
         self.best_ret = 0
         
         # Create environment
-        self.env, self.test_env = env, env
-        self.cfg = cfg
-        self.args = args
+        self.cfg = agent_kwargs
         self.atol = atol
         self.store_from_safe = store_from_safe
         self.file_logger, self.tb_logger = loggers
 
         self.pi_scheduler = None
 
+        if self.cfg['record_experience']:
+            self.save_queue = queue.Queue()
+            self.save_batch_size = save_batch_size
+            self.record_experience = RecordExperience(
+                    self.cfg['record_dir'], 
+                    self.cfg['track_name'], 
+                    self.cfg['experiment_name'],
+                    self.file_logger,
+                    self)
+            self.save_thread = threading.Thread(target=self.record_experience.save_thread)
+            self.save_thread.start()
 
         # Action limit for clamping: critically, assumes all dimensions share the same bound!
         # self.act_limit = self.env.action_space.high[0]
 
-        assert self.cfg['use_encoder_type'] in ['vae', 'vae_small', 'resnet'], \
-                "Specified encoder type must be in ['vae', 'vae_small', 'resnet']" 
+        assert self.cfg['use_encoder_type'] in ['vae'], \
+                "Specified encoder type must be in ['vae']" 
         speed_hiddens = self.cfg[self.cfg['use_encoder_type']]['speed_hiddens'] 
         self.feat_dim = self.cfg[self.cfg['use_encoder_type']]['latent_dims'] + 1
         self.obs_dim = self.cfg[self.cfg['use_encoder_type']]['latent_dims'] + speed_hiddens[-1] \
                 if self.cfg['encoder_switch'] else self.env.observation_space.shape
-        print("obs_dim: ", self.obs_dim)
 
         self.act_dim = self.env.action_space.shape[0]
 
@@ -180,24 +192,31 @@ class SACAgent(BaseAgent):
                 size=self.cfg['replay_size'])
         
         ## vision encoder
-        if self.cfg['use_encoder_type'] == 'vae_small':
+        if self.cfg['use_encoder_type'] == 'vae':
             self.backbone = VAE(
-                    im_c=self.cfg['vae_small']['im_c'], 
-                    im_h=self.cfg['vae_small']['im_h'], 
-                    im_w=self.cfg['vae_small']['im_w'], 
-                    z_dim=self.cfg['vae_small']['latent_dims']
+                    im_c=self.cfg['vae']['im_c'], 
+                    im_h=self.cfg['vae']['im_h'], 
+                    im_w=self.cfg['vae']['im_w'], 
+                    z_dim=self.cfg['vae']['latent_dims']
                 )
-            self.backbone.load_state_dict(torch.load(self.cfg['vae_small']['vae_chkpt_statedict'],\
+            self.backbone.load_state_dict(torch.load(self.cfg['vae']['vae_chkpt_statedict'],\
                     map_location=DEVICE))
         else:
             raise NotImplementedError
 
         self.backbone.to(DEVICE)
-
+        '''
+        ## transform image
+        self.transform = transforms.Compose([
+                transforms.ToTensor(), 
+                transforms.Resize(224),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+                ])
+        '''
         self.actor_critic = ActorCritic(self.obs_dim, 
                 self.env.action_space, 
-                cfg,
-                latent_dims=self.obs_dim,
+                self.cfg,
+                latent_dims=self.obs_dim,  
                 device=DEVICE)
 
         self.t_start = t_start
@@ -255,6 +274,7 @@ class SACAgent(BaseAgent):
         return loss_pi, pi_info
 
     def update(self, data):
+        #print('Using the update in SAC')
         # First run one gradient descent step for Q1 and Q2
         self.q_optimizer.zero_grad()
         loss_q, q_info = self.compute_loss_q(data)
@@ -307,15 +327,15 @@ class SACAgent(BaseAgent):
         while (np.mean(camera)==0) | (np.mean(camera)==255):    
             obs = self.test_env.reset(random_pos=False) \
                     if test else self.env.reset(random_pos=True)
-            state, camera = obs
-        return camera, self._encode(obs), state
+            (state, camera), _ = obs
+        return camera, self._encode((state, camera)), state
 
     def _encode(self, o):
         state, img = o
 
-        if self.cfg['use_encoder_type'] == 'vae_small':
+        if self.cfg['use_encoder_type'] == 'vae':
             img_embed = self.backbone.encode_raw(np.array(img), DEVICE)[0][0]
-            speed = torch.tensor((state[4]**2 + state[3]**2 + state[5]**2)**0.5).float().reshape(1, -1).to(DEVICE)
+            speed = torch.tensor((state[4]**2+state[3]**2+state[5]**2)**0.5).float().reshape(1, -1).to(DEVICE)
             out = torch.cat([img_embed.unsqueeze(0), speed], dim = -1).squeeze(0) # torch.Size([33])
             self.using_speed = 1
         else:
@@ -352,7 +372,7 @@ class SACAgent(BaseAgent):
                 
                 ## Prevent the agent from being stuck
                 if np.allclose(state2[15:16], state[15:16], atol=self.atol, rtol=0):
-                    self.file_logger("Sampling random action to get unstuck")
+                    # self.file_logger("Sampling random action to get unstuck")
                     a = self.test_env.action_space.sample()
                     # Step the env
                     camera2, features2, state2, r, d, info = self._step(a)
@@ -403,22 +423,23 @@ class SACAgent(BaseAgent):
             except:
                 pass    
 
+            # TODO: Find a better way: requires knowledge of child class API :( 
             if 'safety_info' in self.metadata:
                 self.tb_logger.add_scalar('val/ep_interventions', self.metadata['safety_info']['ep_interventions'], n_eps)
 
             # Quickly dump recently-completed episode's experience to the multithread queue,
             # as long as the episode resulted in "success"
-            if self.cfg['record_experience']:
+            if self.cfg['record_experience']:# and self.metadata['info']['success']:
                 self.file_logger("writing experience")
                 self.save_queue.put(experience)
 
         # Save if best (or periodically)
         if (ep_ret > self.best_ret):# and ep_ret > 100):
             path_name = f"{self.cfg['save_path']}/best_{self.cfg['experiment_name']}_episode_{n_eps}.statedict"
-            self.file_logger(f'New best episode reward of {round(ep_ret, 1)}! Saving model checkpoint to {path_name}')
+            self.file_logger(f'New best episode reward of {round(ep_ret, 1)}! Saving: {path_name}')
             self.best_ret = ep_ret
             torch.save(self.actor_critic.state_dict(), path_name)
-            path_name = f"{self.cfg['save_path']}/safety/best_{self.cfg['experiment_name']}_episode_{n_eps}.statedict"
+            path_name = f"{self.cfg['save_path']}/best_{self.cfg['experiment_name']}_episode_{n_eps}.statedict"
             try:
                 ## Try to save Safety Actor-Critic, if present
                 torch.save(self.safety_actor_critic.state_dict(), path_name)
@@ -429,7 +450,7 @@ class SACAgent(BaseAgent):
             path_name = f"{self.cfg['save_path']}/{self.cfg['experiment_name']}_episode_{n_eps}.statedict"
             self.file_logger(f"Periodic save (save_freq of {self.cfg['save_freq']}) to {path_name}")
             torch.save(self.actor_critic.state_dict(), path_name)
-            path_name = f"{self.cfg['save_path']}/safety/{self.cfg['experiment_name']}_episode_{n_eps}.statedict"
+            path_name = f"{self.cfg['save_path']}/{self.cfg['experiment_name']}_episode_{n_eps}.statedict"
             try:
                 ## Try to save Safety Actor-Critic, if present
                 torch.save(self.safety_actor_critic.state_dict(), path_name)
@@ -444,8 +465,7 @@ class SACAgent(BaseAgent):
 
         return val_ep_rets 
                 
-
-    def sac_train(self):
+    def training(self):
         # List of parameters for both Q-networks (save this for convenience)
         self.q_params = itertools.chain(self.actor_critic.q1.parameters(), self.actor_critic.q2.parameters())
 
@@ -458,15 +478,16 @@ class SACAgent(BaseAgent):
         for p in self.actor_critic_target.parameters():
             p.requires_grad = False
 
-        # protip: try to get a feel for how different size networks behave!
+        # Count variables (protip: try to get a feel for how different size networks behave!)
+        # var_counts = tuple(core.count_vars(module) for module in [ac.pi, ac.q1, ac.q2])
         
         # Prepare for interaction with environment
+        # start_time = time.time()
         best_ret, ep_ret, ep_len = 0, 0, 0
         camera, feat, state = self._reset()
         camera, feat, state, r, d, info = self._step([0, 1])
 
         experience = [] 
-        #pdb.set_trace()
         speed_dim = 1 if self.using_speed else 0
         assert len(feat) == self.cfg[self.cfg['use_encoder_type']]['latent_dims'] + speed_dim, \
                 "'o' has unexpected dimension or is a tuple"
@@ -479,15 +500,16 @@ class SACAgent(BaseAgent):
         
             # Step the env
             camera2, feat2, state2, r, d, info = self._step(a)
-            #print(t, a, r)
+
             ## Check that the camera is turned on
             assert (np.mean(camera2)>0)  & (np.mean(camera2)< 255)
             
             ## Prevents the agent from getting stuck by sampling random actions
             ## self.atol for SafeRandom and SPAR are set to -1 so that this condition does not activate
             if np.allclose(state2[15:16], state[15:16], atol=self.atol, rtol=0):
-                self.file_logger("Sampling random action to get unstuck")
+                # self.file_logger("Sampling random action to get unstuck")
                 a = self.env.action_space.sample()
+
                 # Step the env
                 camera2, feat2, state2, r, d, info = self._step(a)
                 ep_len += 1 
@@ -502,19 +524,11 @@ class SACAgent(BaseAgent):
             d = False if ep_len == self.cfg['max_ep_len'] else d
 
             # Store experience to replay buffer
-             
-            
-            if self.store_from_safe: ## SPAR
-                if (not np.allclose(state2[15:16], state[15:16], atol=3e-1, rtol=0)) | (r!=0) | (self.record['transition_actor'] == 'safepol'):
-                    self.replay_buffer.store(feat, a, r, feat2, d)
-                else:
-                    print('Skip')
-            elif self.record['transition_actor'] != 'safepol': 
-                ## Discard sample if not moving
-                if (not np.allclose(state2[15:16], state[15:16], atol=3e-1, rtol=0)) | (r!=0):
-                    self.replay_buffer.store(feat, a, r, feat2, d)
+            if (not np.allclose(state2[15:16], state[15:16], atol=3e-1, rtol=0)) | (r!=0):
+                self.replay_buffer.store(feat, a, r, feat2, d)
             else:
-                print('Skip')
+                # print('Skip')
+                skip = True
 
             if self.cfg['record_experience']:
                 self.recording = {'step': t,
@@ -535,6 +549,11 @@ class SACAgent(BaseAgent):
 
                 experience.append(self.recording)
 
+                ## quickly pass data to save thread
+                #if len(experience) == self.save_batch_size:
+                #    self.save_queue.put(experience)
+                #    experience = []
+
             # Super critical, easy to overlook step: make sure to update
             # most recent observation!
             feat = feat2
@@ -544,12 +563,8 @@ class SACAgent(BaseAgent):
             # Update handling
             if (t >= self.cfg['update_after']) & (t % self.cfg['update_every'] == 0):
                 for j in range(self.cfg['update_every']):
-                    if self.record['transition_actor'] == 'safepol':
-                        ## Skip update to save computing time when in an unsafe state. 
-                        pass 
-                    else:
-                        batch = self.replay_buffer.sample_batch(self.cfg['batch_size'])
-                        self.update(data=batch)
+                    batch = self.replay_buffer.sample_batch(self.cfg['batch_size'])
+                    self.update(data=batch)
 
             if ((t+1) % self.cfg['eval_every'] == 0):
                 # eval on test environment
@@ -568,7 +583,7 @@ class SACAgent(BaseAgent):
                 self.file_logger(msg)
 
                 self.tb_logger.add_scalar('train/episodic_return', ep_ret, self.episode_num)
-                self.tb_logger.add_scalar('train/ep_pct_complete', self.metadata['info']['metrics']['pct_complete'], self.episode_num)
+                #self.tb_logger.add_scalar('train/ep_pct_complete', self.metadata['info']['metrics']['pct_complete'], self.episode_num)
                 self.tb_logger.add_scalar('train/ep_total_time', self.metadata['info']['metrics']['total_time'], self.episode_num)
                 self.tb_logger.add_scalar('train/ep_total_distance', self.metadata['info']['metrics']['total_distance'], self.episode_num)
                 self.tb_logger.add_scalar('train/ep_avg_speed', self.metadata['info']['metrics']['average_speed_kph'], self.episode_num)
@@ -578,9 +593,6 @@ class SACAgent(BaseAgent):
                 self.tb_logger.add_scalar('train/movement_smoothness', self.metadata['info']['metrics']['movement_smoothness'], self.episode_num)
                 self.tb_logger.add_scalar('train/ep_n_steps', t-t_start, self.episode_num)
                 
-                if 'safety_info' in self.metadata:
-                    self.tb_logger.add_scalar('train/ep_interventions', self.metadata['safety_info']['ep_interventions'], self.episode_num)
-
                 # Quickly dump recently-completed episode's experience to the multithread queue,
                 # as long as the episode resulted in "success"
                 if self.cfg['record_experience']:# and self.metadata['info']['success']:
@@ -592,4 +604,3 @@ class SACAgent(BaseAgent):
                 ep_ret, ep_len, self.metadata, experience = 0, 0, {}, []
                 t_start = t + 1
                 camera, feat, state2, r, d, info = self._step([0, 1])
-            

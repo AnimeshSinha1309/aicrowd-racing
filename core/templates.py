@@ -16,11 +16,11 @@ class AbstractAgent(abc.ABC):
     def __init__(self, *args, **kwargs):
         pass
 
-    @abc.abstractmethod
-    def create_env(self):
-        """Instantiate a racing environment.
-        """
-        pass
+#    @abc.abstractmethod
+#    def create_env(self):
+#        """Instantiate a racing environment.
+#        """
+#        pass
 
     @abc.abstractmethod
     def select_action(self):
@@ -65,7 +65,6 @@ class AbstractReward(abc.ABC):
     def set_track(self, inside_path, outside_path, centre_path, car_dims):
         """Store the track and vehicle information as class variables. This is
         useful for evaluating the reward based on the position of the vehicle.
-
         :param inside_path: ENU coordinates of the inside track boundary
         :type inside_path: matplotlib.Path
         :param outside_path: ENU coordinates of the outside track boundary
@@ -86,7 +85,6 @@ class AbstractReward(abc.ABC):
     @abc.abstractmethod
     def get_reward(self, state, **kwargs):
         """Return the reward for the provided state.
-
         :param state: the current environment state
         :type state: varies
         """

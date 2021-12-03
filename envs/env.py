@@ -53,6 +53,9 @@ REVERSE_GEAR = 2
 PARK_GEAR = 3
 GEAR_REQ_RANGE = 4
 
+N_EPISODE_LAPS = 1
+N_SEGMENTS = 10
+
 # Pose observation space boundaries
 MIN_OBS_ARR = [
     -1., -1., -1.,                   # steering, gear, mode
@@ -84,9 +87,15 @@ RACETRACKS = {
     'AngleseyNational': 2,
 }
 
+LEVEL_Z_DICT = {
+    'Thruxton': 63.0,
+    'VegasNorthRoad': 0.4,
+    'AngleseyNational': 14.0
+}
+
+
 class RacingEnv(gym.Env):
     """A reinforcement learning environment for autonomous racing.
-
     :param int max_timesteps: maximimum number of timesteps per episode
     :param dict controller_kwargs: keyword args for the simulator controller
     :param dict reward_kwargs: keyword args the reward policy
@@ -101,20 +110,60 @@ class RacingEnv(gym.Env):
     :param float obs_delay: time delay between action and observation
    """
 
-    def __init__(self, max_timesteps, controller_kwargs, reward_kwargs,
-                 action_if_kwargs, camera_if_kwargs, pose_if_kwargs, sensors,
-                 reward_pol='default', obs_delay=0.10, segm_if_kwargs=False,
-                 birdseye_if_kwargs=False, birdseye_segm_if_kwargs=False,
-                 not_moving_timeout=20, zone=False, provide_waypoints=False):
+    def __init__(self, env_kwargs, sim_kwargs, 
+            segm_if_kwargs=False, birdseye_if_kwargs=False, birdseye_segm_if_kwargs=False,
+                 zone=False, provide_waypoints=False, manual_segments=False, multi_agent=False):
 
+        # switches
+        self.manual_segments = manual_segments
+        self.provide_waypoints = provide_waypoints if provide_waypoints else env_kwargs['provide_waypoints']
+        self.zone = zone
+        self.multi_agent = multi_agent # currently not supported; future
+        self.evaluation = env_kwargs['eval_mode']
+        self.training = True if not self.evaluation else False
+       
+        # global config mappings
+        self.n_eval_laps=env_kwargs['n_eval_laps']                
+        self.max_timesteps=env_kwargs['max_timesteps']                
+        self.not_moving_timeout=env_kwargs['not_moving_timeout']
+        self.observation_delay=env_kwargs['obs_delay']                        
+        self.reward_pol=env_kwargs['reward_pol']                      
+
+        self.level = sim_kwargs['racetrack']
+        self.vehicle_params = sim_kwargs['vehicle_params']
+        self.sensors = sim_kwargs['active_sensors']                     
+        self.camera_params = sim_kwargs['camera_params']
+        self.driver_params = sim_kwargs['driver_params']
+
+        # local confiig mappings
+        controller_kwargs=env_kwargs['controller_kwargs']        
+        reward_kwargs=env_kwargs['reward_kwargs']           
+        action_if_kwargs=env_kwargs['action_if_kwargs']          
+        pose_if_kwargs=env_kwargs['pose_if_kwargs']           
+        camera_if_kwargs=env_kwargs['camera_if_kwargs']
+        cameras=env_kwargs['cameras']         
+
+        camera_sensor_name = [c for c in self.sensors if "Camera" in c][0]
+        self.camera_dims = {camera_sensor_name: # 'CameraFrontalRGB'
+            {'Width': self.camera_params['Width'],
+             'Height': self.camera_params['Height']}}
+
+
+        #pdb.set_trace()
+
+        # class init
         self.controller = SimulatorController(**controller_kwargs)
         self.action_if = utils.ActionInterface(**action_if_kwargs)
         self.pose_if = utils.PoseInterface(**pose_if_kwargs)
 
-        camera_sensor_name = [c for c in sensors if "Camera" in c][0]
+        #self.cameras = [(camera_sensor_name,
+        #    utils.CameraInterface(**camera_if_kwargs))]
 
-        self.cameras = [(camera_sensor_name,
-            utils.CameraInterface(**camera_if_kwargs))]
+        self.cameras = [(name, params, utils.CameraInterface(
+            addr=params['Addr'])) for name, params in cameras.items()]
+
+        #self.cameras = [(camera_sensor_name, self.camera_dims[camera_sensor_name],
+        #    utils.CameraInterface(**camera_if_kwargs))]
 
         if segm_if_kwargs:
             self.cameras.append(('CameraFrontSegm',
@@ -128,27 +177,23 @@ class RacingEnv(gym.Env):
             self.cameras.append(('CameraBirdsEyeSegm',
                 utils.CameraInterface(**birdseye_segm_if_kwargs)))
 
-        self.reward = GranTurismo(**reward_kwargs) if reward_pol == 'default' \
+        self.reward = GranTurismo(**reward_kwargs) if self.reward_pol == 'default' \
             else CustomReward(**reward_kwargs)
-        self.max_timesteps = max_timesteps
-        self.not_moving_timeout = not_moving_timeout
-        self.observation_delay = obs_delay
-        self.provide_waypoints = provide_waypoints
-        self.last_restart = time.time()
-        self.zone = zone
 
         # openAI gym compliance - action space
         self.action_space = Box(low=-1., high=1., shape=(2,), dtype=np.float64)
+        self.multimodal = env_kwargs['multimodal']
 
-    def make(self, level, multimodal, camera_params, sensors, driver_params,
-             segm_params=False, birdseye_params=False,
-             birdseye_segm_params=False, vehicle_params=None,
-             multi_agent=False, remake=False):
+        # misc
+        self.last_restart = time.time()
+
+    def make(self, level=False, multimodal=False, sensors=False, camera_params=False, 
+            driver_params=False, segm_params=False, birdseye_params=False, birdseye_segm_params=False, 
+            vehicle_params=None, multi_agent=False, remake=False):
         """Unlike many environments, make does not start the simulator process.
         It does, however, configure the simulator's settings. The simulator
         process must be running prior to calling this method otherwise an error
         will occur when trying to establish a connection with the simulator.
-
         :param str level: the desired racetrack map
         :param bool multimodal: if false, then the agent is 'visual only'
           and only receives pixel values, if true, the agent also has access
@@ -160,10 +205,16 @@ class RacingEnv(gym.Env):
         :param multi_agent: not currently supported
         :param bool remake: if remaking, reset the camera interface
         """
-        camera_sensor_name = [c for c in sensors if "Camera" in c][0]
+
+        self.level = level if level else self.level
+        self.sensors = sensors if sensors else self.sensors
+        self.driver_params = driver_params if driver_params else self.driver_params
+        self.camera_params = camera_params if camera_params else self.camera_params
+            
+        camera_sensor_name = [c for c in self.sensors if "Camera" in c][0]
         self.camera_dims = {camera_sensor_name: # 'CameraFrontalRGB'
-            {'width': camera_params['Width'],
-             'height': camera_params['Height']}}
+            {'width': self.camera_params['Width'],
+             'height': self.camera_params['Height']}}
 
         if segm_params:
             self.camera_dims['CameraFrontSegm'] = \
@@ -188,37 +239,36 @@ class RacingEnv(gym.Env):
             self.levels = level
             self.active_level = random.choice(self.levels)
         else:
-            raise NotImplemented
-
-        self.sensors = sensors
-        self.multimodal = multimodal
-        self.multi_agent = multi_agent
-        self.vehicle_params = vehicle_params
-        self.camera_params = camera_params
-        self.driver_params = driver_params
+            self.levels = None
+            self.active_level = self.level
 
         self.controller.set_level(self.active_level)
         self.controller.set_api_udp()        
         self._load_map()
-        #pdb.set_trace()
 
-        for sensor in sensors:
+        for cam_name, _, _ in self.cameras:
+                self.controller.enable_sensor(cam_name)
+
+        for sensor in self.sensors:
             self.controller.enable_sensor(sensor)
 
         self.controller.set_sensor_params(sensor='ArrivalVehicleDriver',
-                                          params=driver_params)
+                                          params=self.driver_params)
 
-        for name, params in self.camera_dims.items():
+        for name, params, _ in self.cameras:
+            params['ColorPublisher : Addr'] = params.pop('Addr')
             self.controller.set_sensor_params(sensor=name, params=params)
 
         if remake:
-            for (_, cam) in self.cameras:
+            for (_, _, cam) in self.cameras:
                 cam.reconnect()
         else:
             self.pose_if.start()
-            for (name, cam) in self.cameras:
-                cam.start(img_dims=(self.camera_dims[name]['width'],
-                                    self.camera_dims[name]['height'], 3))
+            for name, params, cam in self.cameras:
+                cam.start(img_dims=(params['Width'], params['Height'], 3))
+
+        self.multimodal = multimodal if multimodal else self.multimodal
+
 
     def _restart_simulator(self):
         """Periodically need to restart the container for long runtimes
@@ -250,7 +300,6 @@ class RacingEnv(gym.Env):
         """The primary method of the environment. Executes the desired action,
         receives the observation from the simulator, and evaluates termination
         conditions.
-
         :param dict action: the action and acceleration requests
         :return: observation, reward, done, info
         :rtype: if multimodal, the observation is a dict of numpy arrays with
@@ -270,15 +319,15 @@ class RacingEnv(gym.Env):
         _ = self._check_restart(done)
 
         if self.provide_waypoints:
+            print(f"WARNING: 'self.provide_waypoints' is set to {self.provide_waypoints}")
             info['track_idx'] = self.nearest_idx
             info['waypoints'] = self._waypoints()
 
         return observation, reward, done, info
 
-    def reset(self, level=None, random_pos=True):
+    def reset(self, level=None, random_pos=False, segment_pos=True):
         """Resets the vehicle to start position. A small time delay is used
         allow for the simulator to reset.
-
         :param str level: if specified, will set the simulator to this level,
           otherwise set to a random track
         :param bool random_pos: true/false for random starting position on the
@@ -289,18 +338,22 @@ class RacingEnv(gym.Env):
         #new_level = level if level else random.choice(self.levels)
         if level:
             new_level = level
+            print(f"Setting to level: {new_level}")
         elif self.levels:
             new_level = random.choice(self.levels)
+            print(f"New random level: {new_level}")
         else:
             new_level = self.level
+            print(f"Continuing with level: {new_level}")
             
         if new_level is self.active_level:
             self.controller.reset_level()
+
         else:
             self.active_level = new_level
             self.controller.set_level(self.active_level)
             self._load_map()
-
+        
         self.nearest_idx, info = None, {}
 
         # give the simulator time to reset
@@ -309,10 +362,17 @@ class RacingEnv(gym.Env):
         # randomly initialize starting location
         p = np.random.uniform()
         # with prob 1/(1+n) use the default start location. 
-        if (random_pos) & (p > 2/(1+len(self.random_poses))) :
+        if (random_pos) and (p > 2/(1+len(self.random_poses))) and not self.evaluation:
             coords, rot = self.random_start_location()
             self.controller.set_location(coords, rot)
             time.sleep(MEDIUM_DELAY)
+
+        elif segment_pos and self.evaluation:
+            coords, rot = self.next_segment_start_location()
+            self.controller.set_location(coords, rot)
+            time.sleep(MEDIUM_DELAY)
+        else:
+            pass
 
         # reset simulator sensors
         self.controller.set_mode_ai()
@@ -321,50 +381,39 @@ class RacingEnv(gym.Env):
             self.controller.set_vehicle_params(self.vehicle_params)
 
         for sensor in self.sensors:
-            print("Sensor: " + str(sensor))
             self.controller.enable_sensor(sensor)
-            print("sensor enabled")
 
         self.reward.reset()
         self.pose_if.reset()
 
-        print("reward and pose reset")
-
-        for (_, cam) in self.cameras:
+        for (_, _, cam) in self.cameras:
             cam.reset()
-        
-        print("camera reset")
 
         # no delay is causing issues with the initial starting index
-        # time.sleep(MEDIUM_DELAY)
+        #time.sleep(MEDIUM_DELAY)
         self.poll_simulator(new_level, random_pos)
-
-        print("delay")
 
         _observation = self._observe()
         _data, _img = _observation
         observation = _observation if self.multimodal else _img
-        self.tracker.reset(start_idx=self.nearest_idx)
+        self.tracker.reset(start_idx=self.nearest_idx, segmentwise=segment_pos)
 
         if self.provide_waypoints:
+            print(f"WARNING: 'self.provide_waypoints' is set to {self.provide_waypoints}")
             info['waypoints'] = self._waypoints()
             info['track_idx'] = self.nearest_idx
             return observation, info
 
-        return observation
+        return observation, None
 
     def poll_simulator(self, level, random_pos):
         """Poll the simulator until it receives an action
         """
         action = (1.0, 0) # steering, acceleration
 
-        loop = 0
         while True:
-            loop = loop + 1
-            print("Loop:" + str(loop))
             self.action_if.act(action)
             pose = self.pose_if.get_data()
-            print("pose[0]: " + str(pose[0]))
             time.sleep(0.1)
             if abs(pose[0]) > 0.05:
                 break
@@ -373,7 +422,8 @@ class RacingEnv(gym.Env):
         """Not implmeneted. The simulator, by default, provides a graphical
         interface, but can also be run on a server.
         """
-        raise NotImplementedError
+        #raise NotImplementedError
+        return self.imgs
 
     @property
     def multimodal(self):
@@ -381,7 +431,6 @@ class RacingEnv(gym.Env):
         cause the environment's observation space to change. If true, the
         environment returns observations as a dictionary with keys:
         ['sensors', 'img'], otherwise, just the image is returned.
-
         :return: true if the environment is set to multimodal, false otherwise
         :rtype: bool
         """
@@ -390,7 +439,6 @@ class RacingEnv(gym.Env):
     @multimodal.setter
     def multimodal(self, value):
         """Setter method for the multimodal property.
-
         :param bool value: value to self the multimodal property to. true sets
           the environment to multimodal and makes the observation space a
           dictionary of the camera images and the sensor data. false is visual
@@ -402,16 +450,15 @@ class RacingEnv(gym.Env):
         self._multimodal = value
         _spaces = {}
 
-        for (name, cam) in self.cameras:
-            _shape = (self.camera_dims[name]['width'],
-                      self.camera_dims[name]['height'], 3)
+        for name, params, cam in self.cameras:
+            _shape = (params['Width'], params['Height'], 3)
             _spaces[name] = Box(low=0, high=255, shape=_shape, dtype=np.uint8)
 
         if self._multimodal:
             _spaces['sensors'] = Box(low=np.array(MIN_OBS_ARR),
                                      high=np.array(MAX_OBS_ARR))
         self.observation_space = Dict(_spaces)
-        print(self.observation_space)
+        #print(self.observation_space)
 
     def _observe(self):
         """Perform an observation action by getting the most recent data from
@@ -420,14 +467,13 @@ class RacingEnv(gym.Env):
         requesting data from the sensor interfaces. Position coordinates are
         converted to a local ENU coordinate system to be consistent with the
         racetrack maps.
-
         :return: a tuple of numpy arrays (pose_data, images) with shapes
           (30,) and (height, width, 3), respectively
         :rtype: tuple
         """
         time.sleep(self.observation_delay)
         pose = self.pose_if.get_data()
-        imgs = [cam.get_data() for (_, cam) in self.cameras]
+        self.imgs = [cam.get_data() for (_, _, cam) in self.cameras]
 
         yaw = pose[12]
         bp = pose[22:25]
@@ -444,7 +490,7 @@ class RacingEnv(gym.Env):
         self.nearest_idx = self.kdtree.query(np.asarray([enu_x, enu_y]))[1]
         self.tracker.update(self.nearest_idx, enu_x, enu_y, enu_z, yaw, a, bp)
 
-        return (pose, imgs)
+        return (pose, self.imgs)
 
     def _is_complete(self, observation):
         """Determine if the episode is complete. Termination conditions include
@@ -457,10 +503,9 @@ class RacingEnv(gym.Env):
         """Loads the racetrack map from a data file. The map is parsed into
         numerous arrays and matplotlib Path objects representing the inside
         and outside track boundaries along with the centerline.
-
         :param str level: the racetrack name
         """
-        map_file, self.random_poses = level_2_trackmap(self.active_level)
+        map_file, self.random_poses, self.segment_poses = level_2_trackmap(self.active_level)
 
         with open(os.path.join(pathlib.Path().absolute(), map_file), 'r') as f:
             self.original_map = json.load(f)
@@ -481,6 +526,14 @@ class RacingEnv(gym.Env):
         self.n_indices = len(self.centerline_arr)
         self.kdtree = KDTree(self.centerline_arr)
 
+        local_segment_idxs_manual = self.poses_to_local_segment_idxs(self.segment_poses)
+        local_segment_idxs_linspace = np.round(np.linspace(0, self.n_indices-2, N_SEGMENTS+1)).astype(int)
+
+        self.local_segment_idxs = local_segment_idxs_linspace \
+                if not self.manual_segments else local_segment_idxs_manual
+
+        self.segment_tree = KDTree(np.expand_dims(np.array(self.local_segment_idxs),axis=1))
+
         self.tracker = ProgressTracker(
             n_indices=len(self.centerline_arr),
             obs_delay=self.observation_delay,
@@ -489,7 +542,12 @@ class RacingEnv(gym.Env):
             outer_track=self.outside_path,
             not_moving_ct=self.not_moving_timeout,
             centerline=self.centerline_arr,
-            car_dims=CAR_DIMS
+            car_dims=CAR_DIMS,
+            n_eval_laps=self.n_eval_laps,
+            n_segments=N_SEGMENTS,
+            segment_idxs=self.local_segment_idxs,
+            segment_tree=self.segment_tree,
+            eval_mode=self.evaluation
         )
 
         self.reward.set_track(
@@ -499,6 +557,9 @@ class RacingEnv(gym.Env):
             car_dims=CAR_DIMS
         )
 
+        #self.segment_coords = self.tracker.get_segment_coords(self.centerline_arr, self.tracker.segment_idxs)
+
+
     def record_manually(self, output_dir, fname='thruxton', num_imgs=5000,
                         sleep_time=0.03):
         """Record observations, including images, to an output directory. This
@@ -506,7 +567,6 @@ class RacingEnv(gym.Env):
         not use the an agent to take environment steps; instead, it just
         listens for observations while a user manually drives the car in the
         simulator.
-
         :param str output_dir: path of the output directory
         :param str fname: file name for output
         :param int num_imgs: number of images to record
@@ -534,7 +594,6 @@ class RacingEnv(gym.Env):
         """Randomly selects an index on the centerline of the track and
         returns the ENU coordinates of the selected index along with the yaw of
         the centerline at that point.
-
         :returns: coordinates of a random index on centerline, yaw
         :rtype: np array, float
         """
@@ -544,6 +603,50 @@ class RacingEnv(gym.Env):
         coords = {'x': pos[0], 'y': pos[1], 'z': pos[2]}
         rot = {'yaw': pos[3], 'pitch': 0.0, 'roll': 0.0}
         return coords, rot
+
+    
+    def next_segment_start_location(self):
+
+        next_segment_idx = self.tracker.current_segment
+
+        next_segment_idx = next_segment_idx % (N_SEGMENTS)
+        
+        try:
+            #pos = self.segment_poses[next_segment_idx]
+            pos = [0]*4
+            pos[0] = self.tracker.segment_coords['first'][next_segment_idx][0] # x
+            pos[1] = self.tracker.segment_coords['first'][next_segment_idx][1] # y
+
+            dy = pos[1]-self.tracker.segment_coords['second'][next_segment_idx][1]
+            dx = pos[0]-self.tracker.segment_coords['second'][next_segment_idx][0]
+            
+            pos[2] = LEVEL_Z_DICT[self.active_level] #
+            pos[3] = np.arctan(dx/dy) # yaw, radians
+            
+        except:
+            pdb.set_trace()
+            pass
+
+        coords = {'x': pos[0], 'y': pos[1], 'z': pos[2]}
+        rot = {'yaw': pos[3], 'pitch': 0.0, 'roll': 0.0}
+
+        self.tracker.current_segment += 1
+
+        print(f"Spawning to next segment start location: curr_segment: {self.tracker.current_segment}; respawns: {self.tracker.respawns}; infractions: {self.tracker.num_infractions}\n{coords},{rot}")
+
+        return coords, rot
+    
+    def poses_to_local_segment_idxs(self, poses):
+        
+        segment_idxs = []
+        for (x,y,z,yaw) in poses:
+            #enu_x, enu_y, enu_z = self.geo_location.convert_to_ENU((x, y, z))
+            #idx = self.kdtree.query(np.asarray([enu_x, enu_y]))[1]
+            idx = self.kdtree.query(np.asarray([x, y]))[1]
+            segment_idxs.append(idx)
+
+        return segment_idxs
+
 
     def _waypoints(self, goal='center', ct=3, step=8):
         """Return position of goal

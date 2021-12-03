@@ -49,7 +49,7 @@ class DuelingNetwork(nn.Module):
         self.action_encoder = mlp([2] + self.cfg[self.cfg['use_encoder_type']]['action_hiddens'])
         
         n_obs = self.cfg[self.cfg['use_encoder_type']]['latent_dims'] + self.cfg[self.cfg['use_encoder_type']]['speed_hiddens'][-1]
-        self.V_network = mlp([n_obs] + self.cfg[self.cfg['use_encoder_type']]['hiddens'] + [1])
+        #self.V_network = mlp([n_obs] + self.cfg[self.cfg['use_encoder_type']]['hiddens'] + [1])
         self.A_network = mlp([n_obs + self.cfg[self.cfg['use_encoder_type']]['action_hiddens'][-1]] + self.cfg[self.cfg['use_encoder_type']]['hiddens'] + [1])
         #self.lr = cfg['resnet']['LR']
 
@@ -62,9 +62,11 @@ class DuelingNetwork(nn.Module):
         action_embed = self.action_encoder(action)
         
         out = self.A_network(torch.cat([img_embed, spd_embed, action_embed], dim = -1))
+        '''
         if advantage_only == False:
             V = self.V_network(torch.cat([img_embed, spd_embed], dim = -1)) # n x 1
             out += V
+        '''
         return out.view(-1)
 
 class ActorCritic(nn.Module):
@@ -111,4 +113,3 @@ class ActorCritic(nn.Module):
             a, _ = self.policy(feat, deterministic, False)
             a = a.squeeze(0)
         return a.numpy() if self.device == 'cpu' else a.cpu().numpy()
-

@@ -37,6 +37,13 @@ def setup_file_logging(logdir, experiment_name):
 
 
 def setup_logging(logdir, experiment_name, resume):
+
+    if not os.path.exists(f'{logdir}/runlogs'):
+        os.umask(0)
+        os.makedirs(logdir, mode=0o777, exist_ok=True)
+        os.makedirs(f"{logdir}/runlogs", mode=0o777, exist_ok=True)
+        os.makedirs(f"{logdir}/tblogs", mode=0o777, exist_ok=True)
+
     file_logger = setup_file_logging(logdir, experiment_name)
     tb_logger = setup_tb_logging(logdir, experiment_name, resume)
     return (file_logger, tb_logger)
@@ -101,16 +108,16 @@ class RecordExperience:
         self.agent = agent
         self.logger = logger
 
+        self.path = os.path.join(self.record_dir, self.track, self.experiment_name)
+
         self.logger('Recording agent experience')
 
     def save(self, record):
 
-        path = os.path.join(self.record_dir, self.track, self.experiment_name)
+        filename = f"{self.path}/{record['stage']}/{record['episode']}/{self.filename}_{self.experiment_name}_{record['step']}"
 
-        if not os.path.exists(path):
-            os.makedirs(path)
-
-        filename = f"{path}/{record['stage']}/{record['episode']}/{self.filename}_{self.experiment_name}_{record['step']}"
+        os.makedirs(self.path, exist_ok=True)
+        os.makedirs(os.path.join(self.path, record['stage'], str(record['episode'])), exist_ok=True)
 
         np.savez_compressed(filename, **record)
 
@@ -127,4 +134,3 @@ class RecordExperience:
             self.logger('[RecordExperience] Saving experience.')
             for record in batch:
                 self.save(record)
-

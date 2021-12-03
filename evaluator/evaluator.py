@@ -34,7 +34,7 @@ class Learn2RaceEvaluator:
         if self.agent is not None:
             return
 
-        save_path = self.sac_config['save_path']
+        save_path = self.sac_config['model_save_path']
         if not os.path.exists(f'{save_path}/runlogs'):
             os.umask(0)
             os.makedirs(save_path, mode=0o777, exist_ok=True)
@@ -55,7 +55,7 @@ class Learn2RaceEvaluator:
     @timeout_decorator.timeout(1 * 60 * 60)
     def train(self):
         logger.info("Starting one-hour 'practice' phase")
-        self.agent.sac_train()
+        self.agent.training()
 
     def evaluate(self):
         """Evaluate the episodes."""
@@ -89,28 +89,14 @@ class Learn2RaceEvaluator:
             avg_metrics[key] = sum(values) / len(values)
         return avg_metrics
 
-    def create_env(self, eval_track):
+    def create_env(self):
         """Do not modify.
 
         Your configuration yaml file must contain the keys below.
         """
         self.env = RacingEnv(
-            max_timesteps=self.env_config.max_timesteps,
-            obs_delay=self.env_config.obs_delay,
-            not_moving_timeout=self.env_config.not_moving_timeout,
-            controller_kwargs=self.env_config.controller_kwargs,
-            reward_pol=self.env_config.reward_pol,
-            reward_kwargs=self.env_config.reward_kwargs,
-            action_if_kwargs=self.env_config.action_if_kwargs,
-            pose_if_kwargs=self.env_config.pose_if_kwargs,
-            camera_if_kwargs=self.env_config.camera_if_kwargs,
-            sensors=self.sim_config.active_sensors
+            self.env_config, self.sim_config
         )
 
-        self.env.make(
-            level=eval_track,
-            multimodal=self.env_config.multimodal,
-            driver_params=self.sim_config.driver_params,
-            camera_params=self.sim_config.camera_params,
-            sensors=self.sim_config.active_sensors
-        )
+        self.env.make()
+        

@@ -8,10 +8,9 @@
 # ========================================================================= #
 import json
 import os
-import re
-import signal
 import subprocess
 import time
+import ipdb as pdb
 
 from websocket import create_connection
 
@@ -35,44 +34,49 @@ class SimulatorController(object):
     accessible via Websocket. The methods in this class allow one to change
     the position of the vehicle, set the map, reset the map, change the
     settings (such as turning the camera on), etc.
-
     :param str ip: IP address of the simulator
     :param str port: port to connect to
     :param boolean quiet: flag to show print statements about changes being
       made to the simulator
     :param str sim_version: version of the simulator
+    :param str sim_path: path of the simulator, if launching as a subprocess
     :param boolean start_container: start simulator container. Assumes
       unix-based os
     :param str image_name: name of the simulator's docker image
+    :param str container_name: name of the container to create
+    :param str user: username is required because simulator cannot be started
+      with root privileges
+    :param boolean evaluation: if evaluation mode, restrict certain sensors
     """
 
     def __init__(self, ip='0.0.0.0', port='16000', quiet=False,
-                 sim_version='ArrivalSim-linux-0.7.0-cmu4',
-                 start_container=False, image_name='arrival-sim',
+                 sim_version='ArrivalSim-linux-0.7.1.188691',
+                 sim_running=False, start_container=False, image_name='arrival-sim',
                  container_name='racing-sim', sim_path=False,
-                 user='ubuntu'):
+                 user='ubuntu', evaluation=False):
         """Constructor method
         """
+        self.sim_running = sim_running
         self.start_container = start_container
         self.sim_path = sim_path
         self.start = START_CMD + f'--name {container_name} {image_name}'
         self.kill = KILL_CMD + container_name
         self.addr = f'{ip}:{port}'
         self.user = user
-        self._resetting = False
+        self.evaluation = evaluation
 
         if start_container or sim_path:
             _ = self.start_simulator()
 
         try:
             self.ws = create_connection(f'ws://{self.addr}')
-        except ConnectionRefusedError as err:
+        except ConnectionRefusedError:
             if start_container or sim_path:
                 print('Failed to connect to simulator. Trying again.')
-                self.restart_simulator()
+                time.sleep(MEDIUM_DELAY // 2)
                 self.ws = create_connection(f'ws://{self.addr}')
             else:
-                print('Simulator is not running. Aborting. start_container set? {}; sim_path set? {}'.format(start_container, sim_path), err)
+                print('Simulator is not running. Aborting.')
                 exit(1)
 
         self.sim_version = sim_version
@@ -93,27 +97,33 @@ class SimulatorController(object):
         """Starts the simulator container, and briefly waits. If a connection
         error occurs, you may need to increase this delay.
         """
-        assert not (self.start_container and self.sim_path)
+        assert not (self.start_container and self.sim_path), "Let L2R start EITHER a docker container OR a native simulator -- not both"
 
-        if self.start_container:
-            print('Starting simulator container')
-            with open('/tmp/sim_log.txt', 'w') as out:
-                subprocess.Popen(self.start, shell=False, stdout=out, stderr=out)
+        if self.sim_running:
+            print("Assiuming sim is running as a separate process. If this is not true, either start sim manually or adjust the config.")
+            pass
+        else:
 
-        elif self.sim_path:
-            print('Starting simulator')
-            pth = os.path.join(self.sim_path, 'ArrivalSim.sh')
-            cmd = ['sudo', '-u', self.user, pth, '-openGL']
-            with open('/tmp/sim_log.txt', 'w') as out:
-                self.simproc = subprocess.Popen(cmd, stdout=out)
+            if self.start_container:
+                print('Starting simulator container')
+                with open('/tmp/sim_log.txt', 'w') as out:
+                    subprocess.Popen(self.start, shell=True, stdout=out, stderr=out)
 
-        time.sleep(MEDIUM_DELAY)
+            elif self.sim_path:
+                print('Starting simulator')
+                pth = os.path.join(self.sim_path, 'ArrivalSim.sh')
+                cmd = ['sudo', '-u', self.user, pth, '-openGL']
+                with open('/tmp/sim_log.txt', 'w') as out:
+                    self.simproc = subprocess.Popen(cmd, stdout=out)
+
+            time.sleep(MEDIUM_DELAY)
+
         return
 
     def poll_sim(self):
         """Periodically check the simulator process
         """
-        if not self.sim_path or self._resetting:
+        if not self.sim_path:
             return
 
         while self.simproc.poll() is None:
@@ -127,31 +137,20 @@ class SimulatorController(object):
         if self.start_container:
             subprocess.Popen(self.kill, shell=True)
         elif self.sim_path:
-            p = subprocess.run(['ps', '-a'], stdout=subprocess.PIPE)
-            while not isinstance(p, subprocess.CompletedProcess):
-                time.sleep(POLL_DELAY)
+            self.simproc.kill()
 
-            pid = None
-            for line in p.stdout.decode('utf-8').splitlines():
-                if line.endswith('ArrivalSim'):
-                    simpid = re.findall(r'[0-9]+', line)[0]
-                    subprocess.Popen(['kill', simpid])
-
-        time.sleep(POLL_DELAY)
+        time.sleep(MEDIUM_DELAY)
 
     def restart_simulator(self):
         """Restarts the simulator container
         """
-        self._resetting = True
         self.kill_simulator()
         self.start_simulator()
         self._print('Reconnecting', force=True)
         self.ws = create_connection(f'ws://{self.addr}')
-        self._resetting = False
 
     def set_level(self, level):
         """Sets the simulator to a specified level (map).
-
         :param string level: name of the racetrack
         """
         level_name = level_2_simlevel(level, self.sim_version)
@@ -163,7 +162,6 @@ class SimulatorController(object):
 
     def set_location(self, coords, rot, veh_id=0):
         """Sets a vehicle to a specific location on track.
-
         :param dict coords: desired ENU coordinates with keys [x, y, z]
         :param dict rot: rotation of the vehicle in degrees with keys
           [yaw, pitch, roll]
@@ -188,7 +186,6 @@ class SimulatorController(object):
 
     def get_level(self):
         """Get the active level of the simulator.
-
         :return: name of the simulator's active racetrack
         :rtype: str
         """
@@ -196,7 +193,6 @@ class SimulatorController(object):
 
     def get_levels(self):
         """Gets the levels available in the simulator.
-
         :return: list of the levels available in the simulator
         :rtype: list of str
         """
@@ -204,7 +200,6 @@ class SimulatorController(object):
 
     def get_position(self, veh_id=0):
         """Get vehicle's current position.
-
         :param int veh_id: identifier of the vehicle, defaults to 0
         :return: ENU coordinates of the vehicle [East, North, Up], vehicle
           heading
@@ -218,7 +213,6 @@ class SimulatorController(object):
 
     def get_vehicle_params(self, veh_id=0):
         """Get the active parameters of a vehicle.
-
         :param int veh_id: identifier of the vehicle, defaults to 0
         :return: a dictionary of the vehicle's parameters
         :rtype: dict
@@ -230,7 +224,6 @@ class SimulatorController(object):
 
     def set_vehicle_params(self, parameters, veh_id=0):
         """Set parameters of a vehicle.
-
         :param list parameters: name value pairs, list of dictionaries
         :param int veh_id: identifier of the vehicle, defaults to 0
         """
@@ -245,7 +238,6 @@ class SimulatorController(object):
 
     def reset_vehicle_params(self, veh_id=0):
         """Reset a vehicle's parameters to default.
-
         :param int veh_id: identifier of the vehicle, defaults to 0
         """
         self._print(f'Resetting vehicle parameters for vehicle: {veh_id}')
@@ -256,7 +248,6 @@ class SimulatorController(object):
 
     def get_active_vehicles(self):
         """Get a list of the active vehicles in the simulator.
-
         :return: list of active vehicles in the following format:
           {"veh_id": <veh_id>, "vehicle_class_name": <vehicle_class_name>}
         :rtype: list of dictionaries
@@ -267,7 +258,6 @@ class SimulatorController(object):
 
     def get_vehicle_classes(self):
         """Get a list of the vehicle classes.
-
         :return: list of the vehicle classes
         :rtype: list
         """
@@ -277,7 +267,6 @@ class SimulatorController(object):
 
     def get_sensors_params(self, veh_id=0):
         """Get the parameters of each sensor for a specified vehicle.
-
         :param int veh_id: identifier of the vehicle, defaults to 0
         :return: parameters for each sensor
         :rtype: list
@@ -289,7 +278,6 @@ class SimulatorController(object):
 
     def get_sensor_params(self, sensor, veh_id=0):
         """Get the parameters of a specified sensor of a specified vehicle.
-
         :param str sensor: name of sensor to get the params for
         :param int veh_id: identifier of the vehicle, defaults to 0
         :return: the sensor's parameters
@@ -306,7 +294,6 @@ class SimulatorController(object):
     def set_sensor_param(self, sensor, name, value, veh_id=0):
         """Set a specified parameter to a specified value of a specified
         sensor on a specified vehicle.
-
         :param str sensor: name of sensor to set
         :param str name: name of the parameter to set
         :param str value: value of the parameter to set
@@ -315,6 +302,11 @@ class SimulatorController(object):
         :rtype: int
         """
         self._print(f'Setting: {name} to: {value} for vehicle: {veh_id}')
+
+        if self.evaluation:
+            if name == 'Format' and value.startswith('Segm'):
+                raise ValueError('Illegal parameters detected')
+
         return self._send_msg(
             method='set_sensor_param',
             params={
@@ -328,13 +320,18 @@ class SimulatorController(object):
     def set_sensor_params(self, sensor, params, veh_id=0):
         """Set specified parameters of a specified sensor on a specified
         vehicle.
-
         :param str sensor: name of sensor to set
         :param dict parameters: name value pairs of the parameters to set
         :param int veh_id: identifier of the vehicle, defaults to 0
         """
         self._print(f'Setting: {sensor} parameters for vehicle: {veh_id}')
         parameters = [{'name': k, 'value': v} for k, v in params.items()]
+
+        if self.evaluation:
+            for p in parameters:
+                if p['name'] == 'Format' and p['value'].startswith('Segm'):
+                    raise ValueError('Illegal parameters detected')
+
         _ = self._send_msg(
             method='set_sensor_params',
             params={
@@ -346,7 +343,6 @@ class SimulatorController(object):
 
     def get_vehicle_driver_params(self, veh_id=0):
         """Get the parameters of the sensor 'ArrivalVehicleDriver'.
-
         :param int veh_id: identifier of the vehicle, defaults to 0
         :return: parameters of the vehicle driver
         :rtype: dict
@@ -361,7 +357,6 @@ class SimulatorController(object):
 
     def get_driver_mode(self, veh_id=0):
         """Get the mode of a specified vehicle.
-
         :param int veh_id: identifier of the vehicle, defaults to 0
         :return: true if manual mode, false if AI mode
         :rtype: boolean
@@ -377,7 +372,6 @@ class SimulatorController(object):
 
     def set_mode_ai(self, veh_id=0):
         """Sets a specified vehicle mode to "AI".
-
         :param int veh_id: identifier of the vehicle, defaults to 0
         """
         self._print(f'Setting to AI mode for vehicle: {veh_id}')
@@ -393,7 +387,6 @@ class SimulatorController(object):
 
     def set_mode_manual(self, veh_id=0):
         """Sets a specified vehicle mode to "manual".
-
         :param int veh_id: identifier of the vehicle, defaults to 0
         """
         self._print(f'Setting to manual mode for vehicle: {veh_id}')
@@ -410,7 +403,6 @@ class SimulatorController(object):
     def set_api_udp(self, veh_id=0):
         """Set a specified vehicle API class to VApiUdp to allow the RL
         agent to control it.
-
         :param int veh_id: identifier of the vehicle, defaults to 0
         """
         self._print(f'Setting to RL mode for vehicle: {veh_id}')
@@ -426,7 +418,6 @@ class SimulatorController(object):
 
     def enable_sensor(self, sensor_name, veh_id=0):
         """Activates a specified sensor on a specified vehicle.
-
         :param str sensor_name: sensor to be activated
         :param int veh_id: identifier of the vehicle, defaults to 0
         :return: 0, if successful
@@ -443,7 +434,6 @@ class SimulatorController(object):
 
     def disable_sensor(self, sensor_name, veh_id=0):
         """Disables a specified sensor on a specified vehicle.
-
         :param str sensor_name: sensor to be deactivated
         :param int veh_id: identifier of the vehicle, defaults to 0
         :return: 0, if successful
@@ -460,7 +450,6 @@ class SimulatorController(object):
 
     def _send_msg(self, method, params=None):
         """Helper routine to send jsonprc messages.
-
         :param str method: specified method
         :param dict params: parameters to send
         :return: response from the simulator
@@ -476,11 +465,10 @@ class SimulatorController(object):
             msg = json.loads(self.ws.recv())
             time.sleep(SHORT_DELAY)
             return msg['result']
-        except:
+        except Exception:
             print(msg)
             print('Disconnected from simulator')
             exit(-1)
-        
         return msg['result']
 
     def _print(self, msg, force=False):
@@ -488,4 +476,3 @@ class SimulatorController(object):
         """
         if not self.quiet and not force:
             print(f'[SimulatorController] {msg}')
-

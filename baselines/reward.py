@@ -22,12 +22,10 @@ class CustomReward(GranTurismo):
     Sport Using Deep Reinforcement Learning (https://arxiv.org/abs/2008.07971).
     Here we reward the agent for progressing down the track and staying near
     the centerline of the track and punish it for going out-of-bounds.
-
     :param oob_penalty: penalty factor for going out-of-bounds where the total
       penalty is this factor times the velocity of the vehicle
     :type oob_penalty: float, optional
     :param min_oob_penalty: minimum penalty for going out-of-bounds
-    :param max_oob_penalty: maximum penalty for going out-of-bounds
     :type min_oob_penalty: float, optional
     :param centerline_bonus: bonus reward for being near the centerline
     :type centerline_bonus: float, optional
@@ -35,18 +33,16 @@ class CustomReward(GranTurismo):
     :type dist_threshold: float, optional
     """
 
-    def __init__(self, oob_penalty=5.0, min_oob_penalty=25.0, max_oob_penalty=50.0,
+    def __init__(self, oob_penalty=5.0, min_oob_penalty=25.0, max_oob_penalty=None,
                  centerline_bonus=1.0, dist_threshold=1.0):
         self.oob_penalty = oob_penalty
         self.min_oob_penalty = min_oob_penalty
-        self.max_oob_penalty = max_oob_penalty
         self.c_bonus = centerline_bonus
         self.d_thresh = dist_threshold
 
     def get_reward(self, state, oob_flag=False):
         """The reward for the given state is the sum of its progress reward
         and the penalty for going out-of-bounds.
-
         :param state: the current state of the environment
         :type state: varies
         :param oob_flag: true if out-of-bounds, otherwise false
@@ -63,7 +59,6 @@ class CustomReward(GranTurismo):
     def _reward_centerline(self, race_idx, loc, progress_reward):
         """Provide bonus reward if near the centerline if there has been
         progress from the last time step.
-
         :param race_idx: index on the track that the vehicle is nearest to
         :type race_idx: int
         :param loc: location of the vehicle, (East, North)

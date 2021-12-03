@@ -7,7 +7,7 @@
 # =========================================================================== #
 
 import json
-import pdb
+
 
 class LevelNotFoundError(Exception):
     pass
@@ -16,7 +16,6 @@ class LevelNotFoundError(Exception):
 def level_2_trackmap(level):
     """Utility to convert a human readable track name to the filepath of
     the racetrack's map.
-
     :param str level: name of the racetrack
     :returns: the filepath of the racetrack's map, random start positions in
       the form [x,y,z,yaw]
@@ -27,7 +26,7 @@ def level_2_trackmap(level):
         racetracks = data['racetracks']
         for track in racetracks:
             if level == track['level']:
-                return track['trackmap'], track['random_pos']
+                return track['trackmap'], track['random_pos'], track['segments']
 
     raise LevelNotFoundError(f'Map of track not found for level: {level}')
 
@@ -35,7 +34,6 @@ def level_2_trackmap(level):
 def level_2_simlevel(level, sim_version):
     """Utility to convert a human readable track name to the name of the track
     used in the simulator (typically a filepath)
-
     :param str level: name of the racetrack
     :param str sim_version: version of the simulator being used
     :returns: the filepath of the racetrack used by the simulator

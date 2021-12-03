@@ -1,8 +1,6 @@
 """This is OpenAI' Spinning Up PyTorch implementation of Soft-Actor-Critic.
-
 For the official documentation, see below:
 https://spinningup.openai.com/en/latest/algorithms/sac.html#documentation-pytorch-version
-
 Source:
 https://github.com/openai/spinningup/blob/master/spinup/algos/pytorch/sac/core.py
 """
@@ -12,6 +10,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions.normal import Normal
+
+import ipdb as pdb
 
 
 def combined_shape(length, shape=None):
@@ -51,7 +51,12 @@ class SquashedGaussianMLPActor(nn.Module):
         std = torch.exp(log_std)
 
         # Pre-squash distribution and sample
-        pi_distribution = Normal(mu, std)
+        try:
+            pi_distribution = Normal(mu, std)
+        except ValueError:
+            pdb.set_trace()
+            pass
+        
         if deterministic:
             # Only used for evaluating policy at test time.
             pi_action = mu
@@ -65,7 +70,9 @@ class SquashedGaussianMLPActor(nn.Module):
             # and look in appendix C. This is a more numerically-stable equivalent to Eq 21.
             # Try deriving it yourself as a (very difficult) exercise. :)
             logp_pi = pi_distribution.log_prob(pi_action).sum(axis=-1)
-            logp_pi -= (2 * (np.log(2) - pi_action - F.softplus(-2 * pi_action))).sum(axis=1)
+            tmp = (2 * (np.log(2) - pi_action - F.softplus(-2 * pi_action)))
+            tmp = tmp.sum(axis=(1 if len(tmp.shape) > 1 else -1))
+            logp_pi -= tmp
         else:
             logp_pi = None
 
@@ -108,4 +115,3 @@ class MLPActorCritic(nn.Module):
         with torch.no_grad():
             a, _ = self.pi(obs, deterministic, False)
             return a.numpy() if self.device == 'cpu' else a.cpu().numpy()
-
