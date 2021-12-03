@@ -435,11 +435,11 @@ class SACAgent(BaseAgent):
 
         # Save if best (or periodically)
         if (ep_ret > self.best_ret):# and ep_ret > 100):
-            path_name = f"{self.cfg['save_path']}/best_{self.cfg['experiment_name']}_episode_{n_eps}.statedict"
+            path_name = f"{self.cfg['model_save_path']}/best_{self.cfg['experiment_name']}_episode_{n_eps}.statedict"
             self.file_logger(f'New best episode reward of {round(ep_ret, 1)}! Saving: {path_name}')
             self.best_ret = ep_ret
             torch.save(self.actor_critic.state_dict(), path_name)
-            path_name = f"{self.cfg['save_path']}/best_{self.cfg['experiment_name']}_episode_{n_eps}.statedict"
+            path_name = f"{self.cfg['model_save_path']}/best_{self.cfg['experiment_name']}_episode_{n_eps}.statedict"
             try:
                 ## Try to save Safety Actor-Critic, if present
                 torch.save(self.safety_actor_critic.state_dict(), path_name)
@@ -450,7 +450,7 @@ class SACAgent(BaseAgent):
             path_name = f"{self.cfg['model_save_path']}/{self.cfg['experiment_name']}_episode_{n_eps}.statedict"
             self.file_logger(f"Periodic save (save_freq of {self.cfg['save_freq']}) to {path_name}")
             torch.save(self.actor_critic.state_dict(), path_name)
-            path_name = f"{self.cfg['save_path']}/{self.cfg['experiment_name']}_episode_{n_eps}.statedict"
+            path_name = f"{self.cfg['model_save_path']}/{self.cfg['experiment_name']}_episode_{n_eps}.statedict"
             try:
                 ## Try to save Safety Actor-Critic, if present
                 torch.save(self.safety_actor_critic.state_dict(), path_name)
