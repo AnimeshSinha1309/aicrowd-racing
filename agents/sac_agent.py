@@ -20,6 +20,9 @@ import baselines.core as core
 from common.models.network import resnet18, ActorCritic
 from common.models.vae import VAE
 from common.utils import RecordExperience
+from common.utils import resolve_envvars, setup_logging
+
+from ruamel.yaml import YAML
 
 ## For Debugging
 from matplotlib import image
@@ -65,6 +68,10 @@ class ReplayBuffer:
         self.weights = torch.tensor(np.zeros_like(idxs), dtype=torch.float32, device=DEVICE)
         return {k: torch.tensor(v, dtype=torch.float32, device=DEVICE) for k, v in batch.items()}
 
+class args:
+    yaml = 'params-sac.yaml'
+    dirhash = ''
+    runtime = 'local'
 
 class SACAgent(BaseAgent):
     """
@@ -138,12 +145,30 @@ class SACAgent(BaseAgent):
     """
 
 
-    def __init__(self, env, agent_kwargs, loggers=tuple(), save_episodes=True, save_batch_size=256, 
-                 atol=1e-3, store_from_safe = False, 
-                 t_start = 0): ## Use when loading from a checkpoint
+    def __init__(self): 
+        yaml = YAML()
+        params = yaml.load(open('configs/params-sac.yaml'))
+        sac_kwargs = resolve_envvars(params['agent_kwargs'], args())
+        self.cfg = sac_kwargs
 
-        # create the environment               
-        self.env, self.test_env = env, env
+        save_episodes=True
+        save_batch_size=256
+        atol=1e-3
+        store_from_safe = False
+        t_start = 0
+
+        self.actor_critic = None
+
+        save_path = self.cfg['model_save_path']
+        if not os.path.exists(f'{save_path}/runlogs'):
+            os.umask(0)
+            os.makedirs(save_path, mode=0o777, exist_ok=True)
+            os.makedirs(f"{save_path}/runlogs", mode=0o777, exist_ok=True)
+            os.makedirs(f"{save_path}/tblogs", mode=0o777, exist_ok=True)
+
+        loggers = setup_logging(save_path, self.cfg['experiment_name'], True) 
+
+        loggers[0]('Using random seed: {}'.format(0))
 
         # This is important: it allows child classes (that extend this one) to "push up" information
         # that this parent class should log
@@ -153,9 +178,11 @@ class SACAgent(BaseAgent):
         self.save_episodes = save_episodes
         self.episode_num = 0
         self.best_ret = 0
+
+        self.t = 0
+        self.deterministic = False
         
         # Create environment
-        self.cfg = agent_kwargs
         self.atol = atol
         self.store_from_safe = store_from_safe
         self.file_logger, self.tb_logger = loggers
@@ -183,13 +210,6 @@ class SACAgent(BaseAgent):
         self.feat_dim = self.cfg[self.cfg['use_encoder_type']]['latent_dims'] + 1
         self.obs_dim = self.cfg[self.cfg['use_encoder_type']]['latent_dims'] + speed_hiddens[-1] \
                 if self.cfg['encoder_switch'] else self.env.observation_space.shape
-
-        self.act_dim = self.env.action_space.shape[0]
-
-        # Experience buffer
-        self.replay_buffer = ReplayBuffer(obs_dim=self.feat_dim, 
-                act_dim=self.act_dim, 
-                size=self.cfg['replay_size'])
         
         ## vision encoder
         if self.cfg['use_encoder_type'] == 'vae':
@@ -213,20 +233,9 @@ class SACAgent(BaseAgent):
                 transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
                 ])
         '''
-        self.actor_critic = ActorCritic(self.obs_dim, 
-                self.env.action_space, 
-                self.cfg,
-                latent_dims=self.obs_dim,  
-                device=DEVICE)
-
         self.t_start = t_start
-        if self.cfg['checkpoint'] and self.cfg['load_checkpoint']:
-            self.actor_critic.load_state_dict(torch.load(self.cfg['checkpoint']))
-            self.episode_num = int(self.cfg['checkpoint'].split('.')[-2].split('_')[-1])
-            self.file_logger(f"Loaded checkpoint {self.cfg['checkpoint']} at episode {self.episode_num}")
-
-        self.actor_critic_target = deepcopy(self.actor_critic)
         self.best_pct = 0
+        
 
     # Set up function for computing SAC Q-losses
     def compute_loss_q(self, data):
@@ -304,19 +313,30 @@ class SACAgent(BaseAgent):
                 p_targ.data.mul_(self.cfg['polyak'])
                 p_targ.data.add_((1 - self.cfg['polyak']) * p.data)
 
-    def select_action(self, t, obs, state=None, deterministic=False):
+    def select_action(self, obs):
 
         # Until start_steps have elapsed, randomly sample actions
         # from a uniform distribution for better exploration. Afterwards,
         # use the learned policy.
-        if t > self.cfg['start_steps']:
-            a = self.actor_critic.act(obs.to(DEVICE), deterministic)
+        if self.t > self.cfg['start_steps']:
+            a = self.actor_critic.act(obs.to(DEVICE), self.deterministic)
             a = a ## numpy array...
             self.record['transition_actor'] = 'learner'
         else:
             a = self.env.action_space.sample()
             self.record['transition_actor'] = 'random'
+        self.t = self.t + 1
         return a 
+
+    def register_reset(self, obs) -> np.array:
+        '''
+        # Same input/output as select_action, except this method is called at episodal reset.
+        # Defaults to select_action
+        '''
+        camera, features, state = self._reset(test=True)
+        self.deterministic = True
+        self.t = 1e6
+        return self.select_action(features)
 
     def _step(self, a, test=False):
         o, r, d, info = self.test_env.step(a) if test else self.env.step(a)
@@ -361,7 +381,9 @@ class SACAgent(BaseAgent):
 
             while (not d) & (ep_len <= self.cfg['max_ep_len']):
                 # Take deterministic actions at test time
-                a = self.select_action(1e6, features, state, True)
+                self.deterministic = True
+                self.t = 1e6
+                a = self.select_action(features)
                 camera2, features2, state2, r, d, info = self._step(a, test=True)
                 ## Check that the camera is turned on
                 assert (np.mean(camera2)>0)  & (np.mean(camera2)< 255)
@@ -465,7 +487,9 @@ class SACAgent(BaseAgent):
 
         return val_ep_rets 
                 
-    def training(self):
+
+    def training(self, env):
+
         # List of parameters for both Q-networks (save this for convenience)
         self.q_params = itertools.chain(self.actor_critic.q1.parameters(), self.actor_critic.q2.parameters())
 
@@ -496,7 +520,7 @@ class SACAgent(BaseAgent):
         # Main loop: collect experience in env and update/log each epoch
         for t in range(self.t_start, self.cfg['total_steps']):
 
-            a = self.select_action(t, feat, state)
+            a = self.select_action(feat)
         
             # Step the env
             camera2, feat2, state2, r, d, info = self._step(a)
@@ -604,3 +628,32 @@ class SACAgent(BaseAgent):
                 ep_ret, ep_len, self.metadata, experience = 0, 0, {}, []
                 t_start = t + 1
                 camera, feat, state2, r, d, info = self._step([0, 1])
+
+    def load_model(self, path):
+        self.actor_critic.load_state_dict(torch.load(path))
+
+    def save_model(self, path):
+        torch.save(self.actor_critic.state_dict(), path)
+
+    def set_params(self, env):
+        self.env = env
+        self.test_env = env
+
+        self.act_dim = self.env.action_space.shape[0]
+
+        # Experience buffer
+        self.replay_buffer = ReplayBuffer(obs_dim=self.feat_dim, 
+                act_dim=self.act_dim, 
+                size=self.cfg['replay_size'])
+        
+        self.actor_critic = ActorCritic(self.obs_dim, 
+                self.env.action_space, 
+                self.cfg,
+                latent_dims=self.obs_dim,  
+                device=DEVICE)
+
+        
+        if self.cfg['checkpoint'] and self.cfg['load_checkpoint']:
+            self.load_model(self.cfg['checkpoint'])
+
+        self.actor_critic_target = deepcopy(self.actor_critic)

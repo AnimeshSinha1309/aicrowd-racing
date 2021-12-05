@@ -6,7 +6,7 @@ import os, re
 
 from evaluator.evaluator import Learn2RaceEvaluator
 from config import SubmissionConfig, SimulatorConfig, EnvConfig
-from common.utils import find_envvar_patterns, replace_envvar_patterns, resolve_envvars
+from common.utils import resolve_envvars
 
 class args:
     yaml = 'params-sac.yaml'
@@ -30,11 +30,7 @@ def evaluation_routine(evaluator):
 
 def run_evaluation():
     submission_config = SubmissionConfig()
-    
     yaml = YAML()
-    params = yaml.load(open('configs/params-sac.yaml'))
-    sac_kwargs = resolve_envvars(params['agent_kwargs'], args())
-
     sys_params = yaml.load(open("configs/params-env.yaml"))
     env_kwargs = resolve_envvars(sys_params['env_kwargs'], args)
     sim_kwargs = resolve_envvars(sys_params['sim_kwargs'], args)
@@ -42,8 +38,7 @@ def run_evaluation():
     evaluator = Learn2RaceEvaluator(
         submission_config=submission_config,
         sim_config=sim_kwargs,
-        env_config=env_kwargs,
-        sac_config = sac_kwargs
+        env_config=env_kwargs
     )
 
     evaluator.create_env()

@@ -16,14 +16,12 @@ class Learn2RaceEvaluator:
         self,
         submission_config: SubmissionConfig,
         env_config: EnvConfig,
-        sim_config: SimulatorConfig,
-        sac_config: SACConfig
+        sim_config: SimulatorConfig
     ):
         logger.info("Starting learn to race evaluator")
         self.submission_config = submission_config
         self.env_config = env_config
         self.sim_config = sim_config
-        self.sac_config = sac_config
 
         self.agent = None
         self.env = None
@@ -33,18 +31,8 @@ class Learn2RaceEvaluator:
         """ """
         if self.agent is not None:
             return
-
-        save_path = self.sac_config['model_save_path']
-        if not os.path.exists(f'{save_path}/runlogs'):
-            os.umask(0)
-            os.makedirs(save_path, mode=0o777, exist_ok=True)
-            os.makedirs(f"{save_path}/runlogs", mode=0o777, exist_ok=True)
-            os.makedirs(f"{save_path}/tblogs", mode=0o777, exist_ok=True)
-
-        loggers = setup_logging(save_path, self.sac_config['experiment_name'], True) 
-
-        loggers[0]('Using random seed: {}'.format(0))
-        self.agent = self.submission_config.agent(self.env, self.sac_config, loggers=loggers) ###
+        self.agent = self.submission_config.agent()
+        self.agent.set_params(self.env)
 
     def load_agent_model(self, path):
         self.agent.load_model(path)
@@ -55,21 +43,21 @@ class Learn2RaceEvaluator:
     @timeout_decorator.timeout(1 * 60 * 60)
     def train(self):
         logger.info("Starting one-hour 'practice' phase")
-        self.agent.training()
+        self.agent.training(self.env)
 
     def evaluate(self):
         """Evaluate the episodes."""
         logger.info("Starting evaluation")
-        # self.env.eval()
+        self.agent.eval()
 
         for ep in range(self.submission_config.eval_episodes):
             done = False
-            state = self.env.reset()
+            state = self.agent._reset(test=True)
             info = {}
             action = self.agent.register_reset(state)
             while not done:
-                state, reward, done, info = self.env.step(action)
-                action = self.agent.select_action(state)
+                camera, features, state2, r, d, info = self.agent._step(action, test=True)
+                action = self.agent.select_action(features)
             self._record_metrics(ep, info["metrics"])
 
     def _record_metrics(self, episode, metrics):
@@ -99,4 +87,5 @@ class Learn2RaceEvaluator:
         )
 
         self.env.make()
+        
         
