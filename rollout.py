@@ -1,18 +1,9 @@
 import tempfile
 import timeout_decorator
 from loguru import logger
-from ruamel.yaml import YAML
-import os, re
 
 from evaluator.evaluator import Learn2RaceEvaluator
-from config import SubmissionConfig, SimulatorConfig, EnvConfig
-from common.utils import resolve_envvars
-
-
-class args:
-    yaml = "params-sac.yaml"
-    dirhash = ""
-    runtime = "local"
+from config import SubmissionConfig, EnvConfig, SimulatorConfig
 
 
 pre_evaluate_model_file, pre_evaluate_model_path = tempfile.mkstemp()
@@ -35,15 +26,11 @@ def evaluation_routine(evaluator):
 
 def run_evaluation():
     submission_config = SubmissionConfig()
-    yaml = YAML()
-    sys_params = yaml.load(open("configs/params-env.yaml"))
-    env_kwargs = resolve_envvars(sys_params["env_kwargs"], args)
-    sim_kwargs = resolve_envvars(sys_params["sim_kwargs"], args)
 
     evaluator = Learn2RaceEvaluator(
         submission_config=submission_config,
-        sim_config=sim_kwargs,
-        env_config=env_kwargs,
+        sim_config=SimulatorConfig,
+        env_config=EnvConfig,
     )
 
     evaluator.create_env()

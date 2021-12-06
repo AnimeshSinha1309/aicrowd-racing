@@ -6,83 +6,27 @@ Source:
 https://github.com/openai/spinningup/blob/master/spinup/algos/pytorch/sac/sac.py
 """
 import itertools
-import os, queue, sys, threading
+import os, queue, threading
 from copy import deepcopy
 
-import torch, cv2
-import ipdb as pdb
+import torch
 import numpy as np
 from torch.optim import Adam
-from torchvision import transforms
 
 from agents.base import BaseAgent
-import baselines.core as core
-from common.models.network import resnet18, ActorCritic
-from common.models.vae import VAE
-from common.utils import RecordExperience
-from common.utils import resolve_envvars, setup_logging
+from l2r.common.models.network import ActorCritic
+from l2r.common.models.vae import VAE
+from l2r.common.utils import RecordExperience
+from l2r.common.utils import resolve_envvars, setup_logging
 
 from ruamel.yaml import YAML
 
-## For Debugging
-from matplotlib import image
 
 DEVICE = torch.device("cuda") if torch.cuda.is_available() else "cpu"
 
 # seed = np.random.randint(255)
 # torch.manual_seed(seed)
 # np.random.seed(seed)
-
-
-class ReplayBuffer:
-    """
-    A simple FIFO experience replay buffer for SAC agents.
-    """
-
-    def __init__(self, obs_dim, act_dim, size):
-        self.obs_buf = np.zeros(
-            (size, obs_dim), dtype=np.float32
-        )  # +1:spd #core.combined_shape(size, obs_dim)
-        self.obs2_buf = np.zeros(
-            (size, obs_dim), dtype=np.float32
-        )  # +1:spd #core.combined_shape(size, obs_dim)
-        self.act_buf = np.zeros(
-            (size, act_dim), dtype=np.float32
-        )  # core.combined_shape(size, act_dim)
-        self.rew_buf = np.zeros(size, dtype=np.float32)
-        self.done_buf = np.zeros(size, dtype=np.float32)
-        self.ptr, self.size, self.max_size = 0, 0, size
-        self.weights = None
-
-    def store(self, obs, act, rew, next_obs, done):
-        # pdb.set_trace()
-        self.obs_buf[self.ptr] = obs.detach().cpu().numpy()
-        self.obs2_buf[self.ptr] = next_obs.detach().cpu().numpy()
-        self.act_buf[self.ptr] = act  # .detach().cpu().numpy()
-        self.rew_buf[self.ptr] = rew
-        self.done_buf[self.ptr] = done
-        self.ptr = (self.ptr + 1) % self.max_size
-        self.size = min(self.size + 1, self.max_size)
-
-    def sample_batch(self, batch_size=32):
-
-        idxs = np.random.choice(
-            self.size, size=min(batch_size, self.size), replace=False
-        )
-        batch = dict(
-            obs=self.obs_buf[idxs],
-            obs2=self.obs2_buf[idxs],
-            act=self.act_buf[idxs],
-            rew=self.rew_buf[idxs],
-            done=self.done_buf[idxs],
-        )
-        self.weights = torch.tensor(
-            np.zeros_like(idxs), dtype=torch.float32, device=DEVICE
-        )
-        return {
-            k: torch.tensor(v, dtype=torch.float32, device=DEVICE)
-            for k, v in batch.items()
-        }
 
 
 class args:
