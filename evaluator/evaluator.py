@@ -14,7 +14,7 @@ class Learn2RaceEvaluator:
 
     def __init__(
         self,
-        submission_config: SubmissionConfig,
+        submission_config: Type[SubmissionConfig],
         env_config: Type[EnvConfig],
         sim_config: Type[SimulatorConfig],
     ):

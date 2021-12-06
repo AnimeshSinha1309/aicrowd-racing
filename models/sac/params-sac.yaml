@@ -7,7 +7,7 @@ agent_kwargs:
     encoder_switch: 1
     use_encoder_type: "vae" 
     vae:
-        vae_chkpt_statedict: 'l2r/commons/models/vae_144w_42h_32latent.pth'
+        vae_chkpt_statedict: 'l2r/common/models/vae_144w_42h_32latent.pth'
         latent_dims: 32
         hiddens: [32, 64, 64, 32, 32]
         speed_hiddens:  [8, 8]
@@ -40,3 +40,5 @@ agent_kwargs:
     track_name: 'Thruxton'
     safety_data: '${PREFIX}/l2r/datasets/l2r/datasets/safety_sets'
     record_dir: '${PREFIX}/l2r/datasets/l2r/datasets/safety_records_dataset/'
+    runtime: local
+    dirhash: ''

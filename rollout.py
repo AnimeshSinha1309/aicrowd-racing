@@ -25,10 +25,8 @@ def evaluation_routine(evaluator):
 
 
 def run_evaluation():
-    submission_config = SubmissionConfig()
-
     evaluator = Learn2RaceEvaluator(
-        submission_config=submission_config,
+        submission_config=SubmissionConfig,
         sim_config=SimulatorConfig,
         env_config=EnvConfig,
     )
