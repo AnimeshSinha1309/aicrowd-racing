@@ -12,6 +12,7 @@ from l2r.envs.env import RacingEnv
 
 class RandomActionAgent(AbstractAgent):
     """Reinforcement learning agent that simply chooses random actions.
+
     :param dict training_kwargs: training keyword arguments
     """
 
@@ -35,6 +36,7 @@ class RandomActionAgent(AbstractAgent):
 
     def select_action(self):
         """Select a random action from the action space.
+
         :return: random action to take
         :rtype: numpy array
         """
@@ -42,6 +44,7 @@ class RandomActionAgent(AbstractAgent):
 
     def create_env(self, env_kwargs, sim_kwargs):
         """Instantiate a racing environment
+
         :param dict env_kwargs: environment keyword arguments
         :param dict sim_kwargs: simulator setting keyword arguments
         """

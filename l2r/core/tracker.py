@@ -12,6 +12,7 @@ import numpy as np
 
 from l2r.envs.utils import GeoLocation
 
+
 SEGMENTS_COMPLETE_NUM = 9
 A_BIG_NUMBER = 1000
 
@@ -32,6 +33,7 @@ class ProgressTracker(object):
     """Progress tracker for the vehicle. This class serves to track the number
     of laps that the vehicle has completed and how long each one took. It also
     evaluates for termination conditions.
+
     :param int n_indices: number of indicies of the centerline of the track
     :param matplotlib.path inner_track: path of the inner track boundary
     :param matplotlib.path outer_track: path of the outer track boundary
@@ -90,6 +92,7 @@ class ProgressTracker(object):
 
     def reset(self, start_idx, segmentwise=False):
         """Reset the tracker for the next episode.
+
         :param int start_idx: index on the track's centerline which the vehicle
           is nearest to
         """
@@ -109,6 +112,7 @@ class ProgressTracker(object):
         """Update the tracker based on current position. The tracker also keeps
         track of the yaw, brake pressure, centerline displacement, and
         calculates the offical metrics for the environment.
+
         :param int idx: index on the track's centerline which the vehicle is
           nearest to
         :param float e: east coordinate
@@ -118,7 +122,7 @@ class ProgressTracker(object):
         :param numpy.array ac: directional acceleration, shape of (3,)
         :param numpy.array bp: brake pressure, per wheel, shape of (4,)
         """
-        # print(f'idx: {idx}')
+        print(f"idx: {idx}")
         self.absolute_idx = idx
         now = time.time()
 
@@ -160,6 +164,7 @@ class ProgressTracker(object):
 
     def _store(self, e, n, u, idx, yaw, c_dist, dt, ac, bp, n_out):
         """Transitions are stored as a list of lists
+
         :param float e: east coordinate
         :param float n: north coordinate
         :param float u: up coordinate
@@ -182,7 +187,9 @@ class ProgressTracker(object):
 
         closest_border_shft = self.segment_tree.query([shifted_idx])
         closest_border_abs = self.segment_tree.query([absolute_idx])
-        # print(f"Current segment: {self.current_segment}\nSegment proposal (shifted idx: {shifted_idx}): ({closest_border_shft[0]},{closest_border_shft[1]})\nSegment proposal (absolute idx: {absolute_idx}): ({closest_border_abs[0]},{closest_border_abs[1]})\nSegment idxs: {self.segment_idxs}")
+        print(
+            f"Current segment: {self.current_segment}\nSegment proposal (shifted idx: {shifted_idx}): ({closest_border_shft[0]},{closest_border_shft[1]})\nSegment proposal (absolute idx: {absolute_idx}): ({closest_border_abs[0]},{closest_border_abs[1]})\nSegment idxs: {self.segment_idxs}"
+        )
 
         if (
             closest_border_abs[0] < 50
@@ -201,14 +208,15 @@ class ProgressTracker(object):
         self.last_segment_dist = closest_border_abs[0]
 
         if current_segment >= 2:
-
             self.segment_success[current_segment - 2] = (
                 True
                 if self.segment_success[current_segment - 2] is not False
                 else False
             )
 
-        # print(f"shft_idx:{shifted_idx}, abs_idx: {absolute_idx}, success:{self.segment_success}, curr_seg:{current_segment}, half:{self.halfway_flag}")
+        print(
+            f"shft_idx:{shifted_idx}, abs_idx: {absolute_idx}, success:{self.segment_success}, curr_seg:{current_segment}, half:{self.halfway_flag}"
+        )
 
         return current_segment
 
@@ -220,6 +228,7 @@ class ProgressTracker(object):
         crosses multiple indicies in one time step when this happens, the lap's
         end time is a linear interpolation between the time of the prior
         update and the current time
+
         :param int shifted_idx: index on the track's centerline which the
           vehicle is nearest to shifted based on the starting index on the
           track
@@ -250,6 +259,7 @@ class ProgressTracker(object):
         number of laps, remaining in the same position for too long (stuck),
         exceeding the maximum number of timestepsor, or going out-of-bounds.
         If all laps were successfully completed, the total time is also returned.
+
         :return: complete, info which includes metrics if successful
         :rtype: boolean, str, list of floats, float
         """
@@ -274,6 +284,7 @@ class ProgressTracker(object):
 
     def append_metrics(self, info):
         """Calculate metrics and append to info
+
         :param dict info: episode information
         :return: info with appended metrics
         :rtype: dict
@@ -321,6 +332,7 @@ class ProgressTracker(object):
     @staticmethod
     def _path_length(path):
         """Calculate length of a path.
+
         :param numpy.array path: set of (x,y) pairs with shape (2, N)
         :return: path length in meters
         :rtype: float
@@ -334,6 +346,7 @@ class ProgressTracker(object):
     def _path_curvature(path):
         """Returns the root mean square of the curvature of the path where
         curvature is calculate parametrically using finite differences.
+
         :param numpy.array path: set of (x,y) pairs with shape (2, N)
         :return: RMS of the path's curvature
         :rtype: float
@@ -355,7 +368,9 @@ class ProgressTracker(object):
     def _log_dimensionless_jerk(movement, freq, data_type="accl"):
         """Sivakumar Balasubramanian's implmentation of log dimensionless
         jerk.
+
         Source: https://github.com/siva82kb/SPARC/blob/master/scripts/smoothness.py
+
         :param numpy.array movement: movement speed profile of t data points
           with shape (t,)
         :param float freq: the sampling frequency of the data
@@ -397,6 +412,7 @@ class ProgressTracker(object):
     def _dist_to_segment(self, p, idx):
         """Returns the shortest distance between point p a line segment
         between the two nearest points on the centerline of the track.
+
         :param array-like p: (x,y) reference point
         :param idx: centerline index to compare to
         :type idx: int
@@ -460,6 +476,7 @@ class ProgressTracker(object):
 
     def _car_out_of_bounds(self):
         """At most 1 wheel can be outside of the driveable area
+
         :return: True if vehicle out-of-bounds
         :rtype: bool
         """
@@ -467,6 +484,7 @@ class ProgressTracker(object):
 
     def _count_wheels_oob(self, e, n, yaw):
         """Count number of wheels that are out of the drivable area
+
         :param float e: east coordinate
         :param float n: north coordinate
         :param float yaw: vehicle heading, in radians

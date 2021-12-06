@@ -1,6 +1,7 @@
 """
 This is a slight modification of Shubham Chandel's implementation of a
 variational autoencoder in PyTorch.
+
 Source: https://github.com/sksq96/pytorch-vae
 """
 import cv2
@@ -9,7 +10,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import ipdb as pdb
 
 
 class VAE(nn.Module):

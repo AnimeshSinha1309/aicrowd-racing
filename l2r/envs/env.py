@@ -25,7 +25,6 @@ from l2r.envs.reward import GranTurismo
 from l2r.core.tracker import ProgressTracker
 from racetracks.mapping import level_2_trackmap
 
-import ipdb as pdb
 
 # Simulator Lag Delay
 MEDIUM_DELAY = 3
@@ -135,6 +134,7 @@ LEVEL_Z_DICT = {"Thruxton": 63.0, "VegasNorthRoad": 0.4, "AngleseyNational": 14.
 
 class RacingEnv(gym.Env):
     """A reinforcement learning environment for autonomous racing.
+
     :param int max_timesteps: maximimum number of timesteps per episode
     :param dict controller_kwargs: keyword args for the simulator controller
     :param dict reward_kwargs: keyword args the reward policy
@@ -265,6 +265,7 @@ class RacingEnv(gym.Env):
         It does, however, configure the simulator's settings. The simulator
         process must be running prior to calling this method otherwise an error
         will occur when trying to establish a connection with the simulator.
+
         :param str level: the desired racetrack map
         :param bool multimodal: if false, then the agent is 'visual only'
           and only receives pixel values, if true, the agent also has access
@@ -375,6 +376,7 @@ class RacingEnv(gym.Env):
         """The primary method of the environment. Executes the desired action,
         receives the observation from the simulator, and evaluates termination
         conditions.
+
         :param dict action: the action and acceleration requests
         :return: observation, reward, done, info
         :rtype: if multimodal, the observation is a dict of numpy arrays with
@@ -404,6 +406,7 @@ class RacingEnv(gym.Env):
     def reset(self, level=None, random_pos=False, segment_pos=True):
         """Resets the vehicle to start position. A small time delay is used
         allow for the simulator to reset.
+
         :param str level: if specified, will set the simulator to this level,
           otherwise set to a random track
         :param bool random_pos: true/false for random starting position on the
@@ -512,6 +515,7 @@ class RacingEnv(gym.Env):
         cause the environment's observation space to change. If true, the
         environment returns observations as a dictionary with keys:
         ['sensors', 'img'], otherwise, just the image is returned.
+
         :return: true if the environment is set to multimodal, false otherwise
         :rtype: bool
         """
@@ -520,6 +524,7 @@ class RacingEnv(gym.Env):
     @multimodal.setter
     def multimodal(self, value):
         """Setter method for the multimodal property.
+
         :param bool value: value to self the multimodal property to. true sets
           the environment to multimodal and makes the observation space a
           dictionary of the camera images and the sensor data. false is visual
@@ -549,6 +554,7 @@ class RacingEnv(gym.Env):
         requesting data from the sensor interfaces. Position coordinates are
         converted to a local ENU coordinate system to be consistent with the
         racetrack maps.
+
         :return: a tuple of numpy arrays (pose_data, images) with shapes
           (30,) and (height, width, 3), respectively
         :rtype: tuple
@@ -585,6 +591,7 @@ class RacingEnv(gym.Env):
         """Loads the racetrack map from a data file. The map is parsed into
         numerous arrays and matplotlib Path objects representing the inside
         and outside track boundaries along with the centerline.
+
         :param str level: the racetrack name
         """
         map_file, self.random_poses, self.segment_poses = level_2_trackmap(
@@ -658,6 +665,7 @@ class RacingEnv(gym.Env):
         not use the an agent to take environment steps; instead, it just
         listens for observations while a user manually drives the car in the
         simulator.
+
         :param str output_dir: path of the output directory
         :param str fname: file name for output
         :param int num_imgs: number of images to record
@@ -685,6 +693,7 @@ class RacingEnv(gym.Env):
         """Randomly selects an index on the centerline of the track and
         returns the ENU coordinates of the selected index along with the yaw of
         the centerline at that point.
+
         :returns: coordinates of a random index on centerline, yaw
         :rtype: np array, float
         """

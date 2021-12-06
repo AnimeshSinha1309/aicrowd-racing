@@ -1,6 +1,8 @@
 """This is OpenAI' Spinning Up PyTorch implementation of Soft-Actor-Critic.
+
 For the official documentation, see below:
 https://spinningup.openai.com/en/latest/algorithms/sac.html#documentation-pytorch-version
+
 Source:
 https://github.com/openai/spinningup/blob/master/spinup/algos/pytorch/sac/core.py
 """
@@ -10,8 +12,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions.normal import Normal
-
-import ipdb as pdb
 
 
 def combined_shape(length, shape=None):

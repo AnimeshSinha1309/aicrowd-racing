@@ -23,6 +23,7 @@ class GranTurismo(AbstractReward):
     agent only for completing a lap is too sparse for learning. Instead, this
     is a dense reward function that rewards the agent for progressing down the
     track and penalizes the agent for going out-of-bounds.
+
     :param float oob_penalty: penalty factor for going out-of-bounds where the
       total penalty is this factor times the velocity of the vehicle
     :param float min_oob_penalty: minimum penalty for going out-of-bounds
@@ -35,6 +36,7 @@ class GranTurismo(AbstractReward):
     def get_reward(self, state, oob_flag=False):
         """The reward for the given state is the sum of its progress reward
         and the penalty for going out-of-bounds.
+
         :param state: the current state of the environment
         :type state: varies
         :param oob_flag: true if out-of-bounds, otherwise false
@@ -52,6 +54,7 @@ class GranTurismo(AbstractReward):
 
     def _reward_oob(self, velocity, oob_flag):
         """Determine the reward for going out-of-bounds.
+
         :param float velocity: magnitude of the velocity of the vehicle
         :param bool oob_flag: true if out-of-bounds, otherwise false
         :return: reward for going out-of-bounds
@@ -65,6 +68,7 @@ class GranTurismo(AbstractReward):
     def _reward_progress(self, race_idx):
         """Reward for progressing down the track. This is simply a reward of 1
         for each index the vehicle has progressed since the previous step.
+
         :param int race_idx: nearest index on the centerline of the racetrack
         :return: reward for progressing down the track
         :rtype: float
