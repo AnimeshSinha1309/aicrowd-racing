@@ -47,8 +47,7 @@ class GranTurismo(AbstractReward):
         return oob_reward + progress_reward
 
     def reset(self):
-        """Reset cached index representing the position on the track.
-        """
+        """Reset cached index representing the position on the track."""
         self.prior_idx = None
 
     def _reward_oob(self, velocity, oob_flag):

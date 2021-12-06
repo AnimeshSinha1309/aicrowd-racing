@@ -19,12 +19,14 @@ def combined_shape(length, shape=None):
         return (length,)
     return (length, shape) if np.isscalar(shape) else (length, *shape)
 
+
 def mlp(sizes, activation=nn.ReLU, output_activation=nn.Identity):
     layers = []
     for j in range(len(sizes) - 1):
         act = activation if j < len(sizes) - 2 else output_activation
         layers += [nn.Linear(sizes[j], sizes[j + 1]), act()]
     return nn.Sequential(*layers)
+
 
 def count_vars(module):
     return sum([np.prod(p.shape) for p in module.parameters()])
@@ -35,7 +37,6 @@ LOG_STD_MIN = -20
 
 
 class SquashedGaussianMLPActor(nn.Module):
-
     def __init__(self, obs_dim, act_dim, hidden_sizes, activation, act_limit):
         super().__init__()
         self.net = mlp([obs_dim] + list(hidden_sizes), activation, activation)
@@ -56,7 +57,7 @@ class SquashedGaussianMLPActor(nn.Module):
         except ValueError:
             pdb.set_trace()
             pass
-        
+
         if deterministic:
             # Only used for evaluating policy at test time.
             pi_action = mu
@@ -70,7 +71,7 @@ class SquashedGaussianMLPActor(nn.Module):
             # and look in appendix C. This is a more numerically-stable equivalent to Eq 21.
             # Try deriving it yourself as a (very difficult) exercise. :)
             logp_pi = pi_distribution.log_prob(pi_action).sum(axis=-1)
-            tmp = (2 * (np.log(2) - pi_action - F.softplus(-2 * pi_action)))
+            tmp = 2 * (np.log(2) - pi_action - F.softplus(-2 * pi_action))
             tmp = tmp.sum(axis=(1 if len(tmp.shape) > 1 else -1))
             logp_pi -= tmp
         else:
@@ -83,7 +84,6 @@ class SquashedGaussianMLPActor(nn.Module):
 
 
 class MLPQFunction(nn.Module):
-
     def __init__(self, obs_dim, act_dim, hidden_sizes, activation):
         super().__init__()
         self.q = mlp([obs_dim + act_dim] + list(hidden_sizes) + [1], activation)
@@ -94,9 +94,15 @@ class MLPQFunction(nn.Module):
 
 
 class MLPActorCritic(nn.Module):
-
-    def __init__(self, observation_space, action_space, hidden_sizes=(256, 256),
-                 activation=nn.ReLU, latent_dims=None, device='cpu'):
+    def __init__(
+        self,
+        observation_space,
+        action_space,
+        hidden_sizes=(256, 256),
+        activation=nn.ReLU,
+        latent_dims=None,
+        device="cpu",
+    ):
         super().__init__()
 
         obs_dim = observation_space.shape[0] if latent_dims is None else latent_dims
@@ -105,7 +111,8 @@ class MLPActorCritic(nn.Module):
 
         # build policy and value functions
         self.pi = SquashedGaussianMLPActor(
-            obs_dim, act_dim, hidden_sizes, activation, act_limit)
+            obs_dim, act_dim, hidden_sizes, activation, act_limit
+        )
         self.q1 = MLPQFunction(obs_dim, act_dim, hidden_sizes, activation)
         self.q2 = MLPQFunction(obs_dim, act_dim, hidden_sizes, activation)
         self.device = device
@@ -114,4 +121,4 @@ class MLPActorCritic(nn.Module):
     def act(self, obs, deterministic=False):
         with torch.no_grad():
             a, _ = self.pi(obs, deterministic, False)
-            return a.numpy() if self.device == 'cpu' else a.cpu().numpy()
+            return a.numpy() if self.device == "cpu" else a.cpu().numpy()

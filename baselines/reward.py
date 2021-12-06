@@ -33,8 +33,14 @@ class CustomReward(GranTurismo):
     :type dist_threshold: float, optional
     """
 
-    def __init__(self, oob_penalty=5.0, min_oob_penalty=25.0, max_oob_penalty=None,
-                 centerline_bonus=1.0, dist_threshold=1.0):
+    def __init__(
+        self,
+        oob_penalty=5.0,
+        min_oob_penalty=25.0,
+        max_oob_penalty=None,
+        centerline_bonus=1.0,
+        dist_threshold=1.0,
+    ):
         self.oob_penalty = oob_penalty
         self.min_oob_penalty = min_oob_penalty
         self.c_bonus = centerline_bonus

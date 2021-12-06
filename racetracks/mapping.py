@@ -21,14 +21,14 @@ def level_2_trackmap(level):
       the form [x,y,z,yaw]
     :rtype: string, list of lists
     """
-    with open('racetracks/racetracks.json', 'r') as f:
+    with open("racetracks/racetracks.json", "r") as f:
         data = json.load(f)
-        racetracks = data['racetracks']
+        racetracks = data["racetracks"]
         for track in racetracks:
-            if level == track['level']:
-                return track['trackmap'], track['random_pos'], track['segments']
+            if level == track["level"]:
+                return track["trackmap"], track["random_pos"], track["segments"]
 
-    raise LevelNotFoundError(f'Map of track not found for level: {level}')
+    raise LevelNotFoundError(f"Map of track not found for level: {level}")
 
 
 def level_2_simlevel(level, sim_version):
@@ -39,11 +39,13 @@ def level_2_simlevel(level, sim_version):
     :returns: the filepath of the racetrack used by the simulator
     :rtype: string
     """
-    with open('racetracks/racetracks.json', 'r') as f:
+    with open("racetracks/racetracks.json", "r") as f:
         data = json.load(f)
-        for simulator in data['simulators']:
-            if simulator['version'] == sim_version:
-                return simulator['levels'][level]
+        for simulator in data["simulators"]:
+            if simulator["version"] == sim_version:
+                return simulator["levels"][level]
 
-    raise LevelNotFoundError(f'Could not find level: {level} \
-                               for simulator verision: {sim_version}')
+    raise LevelNotFoundError(
+        f"Could not find level: {level} \
+                               for simulator verision: {sim_version}"
+    )

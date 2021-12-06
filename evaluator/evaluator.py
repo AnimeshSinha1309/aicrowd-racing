@@ -16,7 +16,7 @@ class Learn2RaceEvaluator:
         self,
         submission_config: SubmissionConfig,
         env_config: EnvConfig,
-        sim_config: SimulatorConfig
+        sim_config: SimulatorConfig,
     ):
         logger.info("Starting learn to race evaluator")
         self.submission_config = submission_config
@@ -56,7 +56,9 @@ class Learn2RaceEvaluator:
             info = {}
             action = self.agent.register_reset(state)
             while not done:
-                camera, features, state2, r, d, info = self.agent._step(action, test=True)
+                camera, features, state2, r, d, info = self.agent._step(
+                    action, test=True
+                )
                 action = self.agent.select_action(features)
             self._record_metrics(ep, info["metrics"])
 
@@ -82,10 +84,6 @@ class Learn2RaceEvaluator:
 
         Your configuration yaml file must contain the keys below.
         """
-        self.env = RacingEnv(
-            self.env_config, self.sim_config
-        )
+        self.env = RacingEnv(self.env_config, self.sim_config)
 
         self.env.make()
-        
-        

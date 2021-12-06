@@ -10,36 +10,32 @@ import abc
 
 
 class AbstractAgent(abc.ABC):
-    """Abstract agent class. A potentially useful template for racing agents.
-    """
+    """Abstract agent class. A potentially useful template for racing agents."""
 
     def __init__(self, *args, **kwargs):
         pass
 
-#    @abc.abstractmethod
-#    def create_env(self):
-#        """Instantiate a racing environment.
-#        """
-#        pass
+    #    @abc.abstractmethod
+    #    def create_env(self):
+    #        """Instantiate a racing environment.
+    #        """
+    #        pass
 
     @abc.abstractmethod
     def select_action(self):
-        """Select an action to take.
-        """
+        """Select an action to take."""
         pass
 
 
 class AbstractInterface(abc.ABC):
-    """Abstract simulator interface to receive data from the simulator.
-    """
+    """Abstract simulator interface to receive data from the simulator."""
 
     def __init__(self, *args, **kwargs):
         pass
 
     @abc.abstractmethod
     def start(self):
-        """The start method is used to start communication with the simulator.
-        """
+        """The start method is used to start communication with the simulator."""
         pass
 
     @abc.abstractmethod
@@ -50,8 +46,7 @@ class AbstractInterface(abc.ABC):
 
     @abc.abstractmethod
     def reset(self):
-        """Used to reset the interface, often to clear existing data.
-        """
+        """Used to reset the interface, often to clear existing data."""
         pass
 
 
@@ -92,6 +87,5 @@ class AbstractReward(abc.ABC):
 
     @abc.abstractmethod
     def reset(self):
-        """Reset the reward policy.
-        """
+        """Reset the reward policy."""
         pass

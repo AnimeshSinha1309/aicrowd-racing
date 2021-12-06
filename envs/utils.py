@@ -19,11 +19,11 @@ import zmq
 from core.templates import AbstractInterface
 
 # Message byte formats
-OUT_MSG_HEADER_FMT = '=ffb'
+OUT_MSG_HEADER_FMT = "=ffb"
 OUT_MSG_HEADER_LENGTH = struct.calcsize(OUT_MSG_HEADER_FMT)
-IN_MSG_HEADER_FMT = '=fbbffffffffffffdddffffffffffff'
+IN_MSG_HEADER_FMT = "=fbbffffffffffffdddffffffffffff"
 IN_MSG_HEADER_LENGTH = struct.calcsize(IN_MSG_HEADER_FMT)
-IMG_MSG_HEADER_FMT = 'iiiiiqq'
+IMG_MSG_HEADER_FMT = "iiiiiqq"
 HEADER_LENGTH = struct.calcsize(IMG_MSG_HEADER_FMT)
 
 # Image Type Declarations
@@ -46,12 +46,12 @@ PARK_GEAR = 3
 GEAR_REQ_RANGE = 4
 
 # Acceleration request boundaries
-MIN_ACC_REQ = -16.
-MAX_ACC_REQ = 6.
+MIN_ACC_REQ = -16.0
+MAX_ACC_REQ = 6.0
 
 # Steering request boundaries
-MIN_STEER_REQ = -1.
-MAX_STEER_REQ = 1.
+MIN_STEER_REQ = -1.0
+MAX_STEER_REQ = 1.0
 
 
 class InvalidActionException(Exception):
@@ -69,8 +69,15 @@ class ActionInterface(object):
     :param float min_accel: minimum acceleration request, bounded by -16.
     """
 
-    def __init__(self, ip='', port=7077, max_steer=1., min_steer=-1.,
-                 max_accel=MAX_ACC_REQ, min_accel=MIN_ACC_REQ):
+    def __init__(
+        self,
+        ip="",
+        port=7077,
+        max_steer=1.0,
+        min_steer=-1.0,
+        max_accel=MAX_ACC_REQ,
+        min_accel=MIN_ACC_REQ,
+    ):
         self.addr = (ip, port)
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.max_steer = max_steer
@@ -78,9 +85,9 @@ class ActionInterface(object):
         self.max_accel = max_accel
         self.min_accel = min_accel
         if max_steer > MAX_STEER_REQ or min_steer < MIN_ACC_REQ:
-            raise InvalidActionException('Invalid steering boundaries')
+            raise InvalidActionException("Invalid steering boundaries")
         if max_accel > MAX_ACC_REQ or min_accel < MIN_ACC_REQ:
-            raise InvalidActionException('Invalid acceleration boundaries')
+            raise InvalidActionException("Invalid acceleration boundaries")
 
     def act(self, action):
         """Send action request to the simulator.
@@ -93,11 +100,10 @@ class ActionInterface(object):
         self.sock.sendto(bytes, self.addr)
 
     def _scale_action(self, action):
-        """Scale the action
-        """
+        """Scale the action"""
         steer, acc = action[0], action[1]
-        steer *= self.max_steer if steer > 0 else (-1. * self.min_steer)
-        acc *= self.max_accel if acc > 0 else (-1. * self.min_accel)
+        steer *= self.max_steer if steer > 0 else (-1.0 * self.min_steer)
+        acc *= self.max_accel if acc > 0 else (-1.0 * self.min_accel)
         return steer, acc
 
     def _check_action(self, action):
@@ -106,10 +112,10 @@ class ActionInterface(object):
           [steering, acceleration], expected to be in the range (-1., 1.)
         """
         if action[0] < -1.0 or action[0] > 1.0:
-            raise InvalidActionException('Invalid steering request')
+            raise InvalidActionException("Invalid steering request")
 
         if action[1] < -1.0 or action[1] > 1.0:
-            raise InvalidActionException('Invalid acceleration request')
+            raise InvalidActionException("Invalid acceleration request")
 
 
 class PoseInterface(AbstractInterface):
@@ -130,7 +136,7 @@ class PoseInterface(AbstractInterface):
       assumed to be of type float
     """
 
-    def __init__(self, ip='', port=7078, data_elems=30):
+    def __init__(self, ip="", port=7078, data_elems=30):
         addr = (ip, port)
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -138,8 +144,7 @@ class PoseInterface(AbstractInterface):
         self.data_elems = data_elems
 
     def start(self):
-        """Starts a thread to listen for data from the simulator.
-        """
+        """Starts a thread to listen for data from the simulator."""
         self.reset()
         self.thread = threading.Thread(target=self._receive, daemon=True)
         self.thread.start()
@@ -152,8 +157,7 @@ class PoseInterface(AbstractInterface):
         return copy.deepcopy(self.data)
 
     def reset(self):
-        """Allocates memory for data receive.
-        """
+        """Allocates memory for data receive."""
         self.data = np.zeros(shape=(self.data_elems,), dtype=float)
 
     def _receive(self):
@@ -172,13 +176,13 @@ class CameraInterface(AbstractInterface):
     :param int port: system port
     """
 
-    def __init__(self, addr=None, ip='tcp://127.0.0.1', port=8008):
+    def __init__(self, addr=None, ip="tcp://127.0.0.1", port=8008):
         ctx = zmq.Context()
         self.sock = ctx.socket(zmq.SUB)
-        self.sock.setsockopt(zmq.SUBSCRIBE, b'')
+        self.sock.setsockopt(zmq.SUBSCRIBE, b"")
         self.sock.setsockopt(zmq.CONFLATE, 1)
-        self.sock.connect(f'{ip}:{port}')
-        self.addr = f'{ip}:{port}' if not addr else addr
+        self.sock.connect(f"{ip}:{port}")
+        self.addr = f"{ip}:{port}" if not addr else addr
 
     def start(self, img_dims):
         """Starts a thread to listen for images on.
@@ -198,13 +202,11 @@ class CameraInterface(AbstractInterface):
         return copy.deepcopy(self.img)
 
     def reset(self):
-        """Allocates memory for data receive.
-        """
+        """Allocates memory for data receive."""
         self.img = np.zeros(shape=self.img_dims, dtype=float)
 
     def reconnect(self):
-        """Reconnect to the socket
-        """
+        """Reconnect to the socket"""
         self.sock.connect(self.addr)
 
     def _receive(self):
@@ -224,8 +226,7 @@ class CameraInterface(AbstractInterface):
             self.img = im.reshape(head[1:4])[:, :, ::-1]  # BGR to RGB
 
     def _ocv2np_type(self, ocv_type):
-        """Utility to determine dtype of the image.
-        """
+        """Utility to determine dtype of the image."""
         if ocv_type == CV_8U:
             return np.uint8
         if ocv_type == CV_8S:
@@ -287,8 +288,14 @@ class GeoLocation(object):
         Bot_Right_x = center[0] + w_cos + h_sin
         Bot_Right_y = center[1] + w_sin - h_cos
 
-        return np.array([(Top_Right_x, Top_Right_y), (Top_Left_x, Top_Left_y),
-                         (Bot_Right_x, Bot_Right_y), (Bot_Left_x, Bot_Left_y)])
+        return np.array(
+            [
+                (Top_Right_x, Top_Right_y),
+                (Top_Left_x, Top_Left_y),
+                (Bot_Right_x, Bot_Right_y),
+                (Bot_Left_x, Bot_Left_y),
+            ]
+        )
 
     def convert_to_ENU(self, center):
         """Convert latitude/longitude coordinates to ENU coordinates.
@@ -325,8 +332,11 @@ class GeoLocation(object):
         dECEF[2] = (z + r0 * (1.0 - self.EARTHECCEN2)) * slat - ecefRef[2]
 
         # Define rotation from ECEF to ENU
-        R = [[-slonRef, clonRef, 0], [-slatRef * clonRef, -slatRef * slonRef, clatRef],
-             [clatRef * clonRef, clatRef * slonRef, slatRef]]
+        R = [
+            [-slonRef, clonRef, 0],
+            [-slatRef * clonRef, -slatRef * slonRef, clatRef],
+            [clatRef * clonRef, clatRef * slonRef, slatRef],
+        ]
 
         enu = [0.0] * 3
 
