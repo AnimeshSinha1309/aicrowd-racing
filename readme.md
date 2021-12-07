@@ -38,7 +38,7 @@ The Learn to Race Challenge is an opportunity for researchers and machine learni
 The challenge consists of two stages: 
 - In **Stage 1**, participants will train their models locally, and then upload submit model checkpoints to AIcrowd for evaluation on *Thruxton Circuit*, which is included in the Learn-to-Race environment. Each team will be able to submit agents to the evaluation service with a limit of 1 successful submission every 24 hours. The top 10 teams on the leader board will enter **Stage 2**.
 
-![](https://i.imgur.com/rssp71d.jpeg)
+![](https://images.aicrowd.com/uploads/ckeditor/pictures/633/content_final_gif_white.gif)
 
 - In **Stage 2**, participants will submit their models (with checkpoints) to AIcrowd for training on an unseen track for a time budget of one hour, during which the number of safety infractions will be accumulated as one of the evaluation metrics. After the one-hour ‘practice’ period, the agent will be evaluated on the unseen track. Each team may submit up to three times for this stage, and the best results will be used for the final ranking. This is intended to give participants a chance to deal with bugs or submission errors.
 
