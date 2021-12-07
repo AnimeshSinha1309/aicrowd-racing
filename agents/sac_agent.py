@@ -22,7 +22,7 @@ from l2r.common.utils import setup_logging
 
 from ruamel.yaml import YAML
 
-from models.sac.replay_buffer import ReplayBuffer
+from agents.replay_buffer import ReplayBuffer
 
 DEVICE = torch.device("cuda") if torch.cuda.is_available() else "cpu"
 
@@ -49,10 +49,12 @@ class SACAgent(BaseAgent):
         self.setup_vision_encoder()
         self.set_params()
 
-    def select_action(self, obs):
+    def select_action(self, obs, encode=True):
         # Until start_steps have elapsed, randomly sample actions
         # from a uniform distribution for better exploration. Afterwards,
         # use the learned policy.
+        if encode:
+            obs = self._encode(obs)
         if self.t > self.cfg["start_steps"]:
             a = self.actor_critic.act(obs.to(DEVICE), self.deterministic)
             a = a  # numpy array...
@@ -305,7 +307,7 @@ class SACAgent(BaseAgent):
                 # Take deterministic actions at test time
                 self.deterministic = True
                 self.t = 1e6
-                a = self.select_action(features)
+                a = self.select_action(features, encode=False)
                 camera2, features2, state2, r, d, info = self._step(env, a)
 
                 # Check that the camera is turned on
@@ -438,7 +440,7 @@ class SACAgent(BaseAgent):
         t_start = self.t_start
         # Main loop: collect experience in env and update/log each epoch
         for t in range(self.t_start, self.cfg["total_steps"]):
-            a = self.select_action(feat)
+            a = self.select_action(feat, encode=False)
 
             # Step the env
             camera2, feat2, state2, r, d, info = self._step(env, a)
@@ -510,7 +512,7 @@ class SACAgent(BaseAgent):
 
             if (t + 1) % self.cfg["eval_every"] == 0:
                 # eval on test environment
-                val_returns = self.eval(t // self.cfg["eval_every"])
+                val_returns = self.eval(t // self.cfg["eval_every"], env)
 
                 # Reset
                 (

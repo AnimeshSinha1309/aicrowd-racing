@@ -47,7 +47,7 @@ class Learn2RaceEvaluator:
         logger.info("Starting evaluation")
 
         for ep in range(self.submission_config.eval_episodes):
-            state = self.env.reset()
+            state, _ = self.env.reset()
             self.agent.register_reset(state)
             done = False
             info = {}

@@ -5,26 +5,7 @@ You can simply add your dependencies on top of this repository.
 
 Few of the most common ways are as follows:
 
-* `environment.yml` -- The _optional_ Anaconda environment specification. 
-    As you add new requirements you can export your `conda` environment to this file!
-    ```
-    conda env export --no-build > environment.yml
-    ```
-
-    * **Create your new conda environment**
-
-        ```sh
-        conda create --name music_demixing_challenge
-        conda activate music_demixing_challenge
-        ```
-
-  * **Your code specific dependencies**
-    ```sh
-    conda install <your-package>
-    ```  
-
-
-* `requirements.txt` -- The `pip3` packages used by your inference code. **Note that dependencies specified by `environment.yml` take precedence over `requirements.txt`.** As you add new pip3 packages to your inference procedure either manually add them to `requirements.txt` or if your software runtime is simple, perform:
+* `requirements.txt` -- The `pip3` packages used by your inference code. As you add new pip3 packages to your inference procedure either manually add them to `requirements.txt` or if your software runtime is simple, perform:
     ```
     # Put ALL of the current pip3 packages on your system in the submission
     >> pip3 freeze >> requirements.txt
@@ -40,8 +21,8 @@ Few of the most common ways are as follows:
 
 These files are used to construct your **AIcrowd submission docker containers** in which your code will run. 
 
-In case you are advanced user, you can check other methods to specify the runtime [here](https://discourse.aicrowd.com/t/how-to-specify-runtime-environment-for-your-submission/2274), which includes adding your own `Dockerfile` directly.
+* `Dockerfile` -- **For advanced users only**. `Dockerfile` gives you more flexibility on defining the software runtime used during evaluations. Please note that you should only use `aicrowd/learn-to-race:base` as the base image in your `Dockerfile`. If you have a use case that needs to use a different base image, please get in touch with us.
 
 ----
 
-👋 In case you have any doubts or need help, you can reach out to us via Challenge [Discussions](https://www.aicrowd.com/challenges/iclr-2021-learn-to-race/discussion) or [Discord](https://discord.gg/fNRrSvZkry).
+👋 In case you have any doubts or need help, you can reach out to us via Challenge [Discussions](https://www.aicrowd.com/challenges/learn-to-race-autonomous-racing-virtual-challenge/discussion) or [Discord](https://discord.gg/fNRrSvZkry).

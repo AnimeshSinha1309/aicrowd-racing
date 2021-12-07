@@ -35,7 +35,7 @@ agent_kwargs:
     max_ep_len: 50000
     im_w: 144
     im_h: 144
-    checkpoint: 'models/sac/checkpoints/best_sac_local_encoder-vae_small_seed-249_episode_1.statedict'
+    checkpoint: 'models/sac/checkpoints/best_sac_local_encoder-vae_small_seed-249_episode_480.statedict'
     model_save_path: '${PREFIX}/l2r/results/${DIRHASH}workspaces/${USER}/results'
     track_name: 'Thruxton'
     safety_data: '${PREFIX}/l2r/datasets/l2r/datasets/safety_sets'

@@ -25,6 +25,7 @@ from l2r.envs.reward import GranTurismo
 from l2r.core.tracker import ProgressTracker
 from racetracks.mapping import level_2_trackmap
 
+import ipdb as pdb
 
 # Simulator Lag Delay
 MEDIUM_DELAY = 3
@@ -88,6 +89,8 @@ RACETRACKS = {
 }
 
 LEVEL_Z_DICT = {"Thruxton": 63.0, "VegasNorthRoad": 0.4, "AngleseyNational": 14.0}
+
+COORD_MULTIPLIER = {"Thruxton": -1, "VegasNorthRoad": -1}
 
 
 class RacingEnv(gym.Env):
@@ -415,6 +418,9 @@ class RacingEnv(gym.Env):
         else:
             pass
 
+        self.tracker.wrong_way = False  # reset
+        self.tracker.idx_sequence = [0] * 5  # reset
+
         # reset simulator sensors
         self.controller.set_mode_ai()
 
@@ -604,6 +610,7 @@ class RacingEnv(gym.Env):
             segment_idxs=self.local_segment_idxs,
             segment_tree=self.segment_tree,
             eval_mode=self.evaluation,
+            coord_multiplier=COORD_MULTIPLIER[self.active_level],
         )
 
         self.reward.set_track(
