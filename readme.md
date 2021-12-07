@@ -1,6 +1,6 @@
 ![Learn to Race Banner](docs/l2r_banner.jpg)
 
-# [Learn to Race Challenge](https://www.aicrowd.com/challenges/iclr-2021-learn-to-race/) | Starter Kit 
+# [Learn to Race Challenge](https://www.aicrowd.com/challenges/learn-to-race-autonomous-racing-virtual-challenge) | Starter Kit 
 [![Discord](https://img.shields.io/discord/565639094860775436.svg)](https://discord.gg/fNRrSvZkry)
 
 This repository is the Learn to Race Challenge **Submission template and Starter kit**! Clone the repository to compete now!
@@ -10,23 +10,25 @@ This repository is the Learn to Race Challenge **Submission template and Starter
 *  **The procedure** for best practices and information on how we evaluate your agent, etc.
 *  **Starter code** for you to get started!
 
-
-<!--
-//todo: Add starter code
-> **NOTE:** 
-If you are resource-constrained or would not like to setup everything in your system, you can make your submission from inside Google Colab too. [**Check out the beta version of the Notebook.**](https://colab.research.google.com/drive/14FpktUXysnjIL165hU3rTUKPHo4-YRPh?usp=sharing)
--->
-
-
 # Table of Contents
 
-1. [Competition Overview](#competition-overview)
-2. [Getting Started](#how-to-start-participating)
-3. [How do I specify my software runtime / dependencies?](#how-do-i-specify-my-software-runtime-dependencies-)
-4. [What should my code structure be like ?](#what-should-my-code-structure-be-like-)
-5. [How to make submission](#how-to-make-submission)
-6. [Other concepts](#other-concepts)
-7. [Important links](#-important-links)
+- [Competition Overview](#competition-overview)
+    + [Competition Stages](#competition-stages)
+- [Getting Started](#getting-started)
+- [How to write your own agent?](#how-to-write-your-own-agent)
+- [How to start participating?](#how-to-start-participating)
+  * [Setup](#setup)
+  * [How do I specify my software runtime / dependencies?](#how-do-i-specify-my-software-runtime-dependencies)
+  * [What should my code structure be like?](#what-should-my-code-structure-be-like)
+  * [How to make a submission?](#how-to-make-a-submission)
+- [Other Concepts](#other-concepts)
+    + [Evaluation Metrics](#evaluation-metrics)
+    + [Ranking Criteria](#ranking-criteria)
+    + [Time constraints](#time-constraints)
+  * [Local Evaluation](#local-evaluation)
+  * [Contributing](#contributing)
+  * [Contributors](#contributors)
+- [Important links](#-important-links)
 
 
 #  Competition Overview
@@ -34,66 +36,38 @@ The Learn to Race Challenge is an opportunity for researchers and machine learni
 
 ### Competition Stages
 The challenge consists of two stages: 
-- In **Stage 1**, participants will train their models locally, and then upload submit model checkpoints to AICrowd for evaluation on *Thruxton Circuit*, which is included in the Learn-to-Race environment. Each team will be able to submit agents to the evaluation service with a limit of 1 successful submission every 24 hours. The top 10 teams on the leader board will enter **Stage 2**.
+- In **Stage 1**, participants will train their models locally, and then upload submit model checkpoints to AIcrowd for evaluation on *Thruxton Circuit*, which is included in the Learn-to-Race environment. Each team will be able to submit agents to the evaluation service with a limit of 1 successful submission every 24 hours. The top 10 teams on the leader board will enter **Stage 2**.
 
-![](https://i.imgur.com/xzQkwKV.jpg)
+![](https://i.imgur.com/rssp71d.jpeg)
 
-- In **Stage 2**, participants will submit their models (with checkpoints) to AICrowd for training on an unseen track for a time budget of one hour, during which the number of safety infractions will be accumulated as one of the evaluation metrics. After the one-hour ‘practice’ period, the agent will be evaluated on the unseen track. Each team may submit up to three times for this stage, and the best results will be used for the final ranking. This is intended to give participants a chance to deal with bugs or submission errors.
+- In **Stage 2**, participants will submit their models (with checkpoints) to AIcrowd for training on an unseen track for a time budget of one hour, during which the number of safety infractions will be accumulated as one of the evaluation metrics. After the one-hour ‘practice’ period, the agent will be evaluated on the unseen track. Each team may submit up to three times for this stage, and the best results will be used for the final ranking. This is intended to give participants a chance to deal with bugs or submission errors.
 
-//todo: Add a flow chart for Stage 2  
-
-<!-- **The following is a high level description of how this process works** -->
 
 
 #  Getting Started
-1. **Sign up** to join the competition [on the AIcrowd website](https://www.aicrowd.com/challenges/iclr-2021-learn-to-race/).
-2. **Download** the Arrival Arrival Autonomous Racing Simulator [from this link](https://learn-to-race.org/sim/).  
-2. **Clone** this repo and start developing your autonomous racing agent.
-3. **Develop** your autonomous racing agents following the template in [how to write your own agent](#how-to-write-your-own-agent) section.
-4. [**Submit**](#how-to-submit-a-model) your trained models to [AIcrowd Gitlab](https://gitlab.aicrowd.com) for evaluation [(full instructions below)](#how-to-submit-a-model). The automated evaluation setup will evaluate the submissions on the racetrack and report the metrics on the leaderboard of the competition.
+1. **Sign up** to join the competition [on the AIcrowd website](https://www.aicrowd.com/challenges/learn-to-race-autonomous-racing-virtual-challenge).
+2. **Download** the Arrival Autonomous Racing Simulator [from this link](https://www.aicrowd.com/clef_tasks/82/task_dataset_files?challenge_id=954).
+3. **Fork** this starter kit repository. You can use [this link](https://gitlab.aicrowd.com/learn-to-race/l2r-starter-kit/-/forks/new) to create a fork.
+4. **Clone** your forked repo and start developing your autonomous racing agent.
+5. **Develop** your autonomous racing agents following the template in [how to write your own agent](#how-to-write-your-own-agent) section.
+6. [**Submit**](#how-to-make-a-submission) your trained models to [AIcrowd Gitlab](https://gitlab.aicrowd.com) for evaluation [(full instructions below)](#how-to-make-a-submission). The automated evaluation setup will evaluate the submissions on the racetrack and report the metrics on the leaderboard of the competition.
+
 
 # How to write your own agent?
 
-We recommend that you place the code for all your agents in the `agents` directory (though it is not mandatory). You should implement the `select_action` method, along with other methods as specified in the [`BaseAgent`](agents/base.py) class. You should also implement the `training` method for local development and for the one-hour 'practice' period in Stage 2.  
+We recommend that you place the code for all your agents in the `agents` directory (though it is not mandatory). You should implement the
 
-```python
-from agents.base import BaseAgent
+- `select_action`
+- `register_reset`
+- `training` (Needed only in stage 2)
+- `load_model` (Needed only in stage 2)
+- `save_model` (Needed only in stage 2)
+  
+methods as specified in the [`BaseAgent`](agents/base.py) class. We recommend that you write your code in such a way that it implements `training`, `load_model`, and `save_model` methods as expected. This will ensure that your code is ready for stage 2 evaluations. 
 
+Please refer the [`BaseAgent`](agents/base.py) class for the input/output interfaces.
 
-class MyAgent(BaseAgent):
-    def __init__(self):
-	super.__init__()
-      	## Initialize your agent, e.g. 
-	self.model = ...
-	self.model.load_model(path)
-
-    def select_action(self, obs):
-        '''
-        # Outputs action given the current observation
-        obs: a dictionary
-            During local development, the participants may specify their desired observations.
-            During evaluation on AICrowd, the participants will have access to
-            obs =
-            {
-              'CameraFrontRGB': front_img, # numpy array of shape (width, height, 3)
-              'CameraLeftRGB': left_img, # numpy array of shape (width, height, 3)
-              'CameraRightRGB': right_img, # numpy array of shape (width, height, 3)
-              'track_id': track_id, # integer value associated with a specific racetrack
-              'speed': speed # float value of vehicle speed in m/s
-            }
-        returns:
-            action: np.array (2,)
-            action should be in the form of [\delta, a], where \delta is the normalized steering angle, and a is the normalized acceleration.
-        '''
-
-    def training(self, env):
-        '''
-        Implement the training loop here.
-        - Local development OR Stage 2 'practice' phase
-        '''
-```
-
-Update the `SubmissionConfig` in [config.py](config.py#L5) to use your new agent class instead of the `RandomAgent`.
+Update the `SubmissionConfig` in [config.py](config.py#L5) to use your new agent class instead of the `SACAgent`.
 
 # How to start participating?
 
@@ -106,30 +80,30 @@ You can add your SSH Keys to your GitLab account by going to your profile settin
 2.  **Clone the repository**
 
     ```
-    git clone git@gitlab.aicrowd.com:learn-to-race/learn-to-race-starter-kit.git
+    git clone git@gitlab.aicrowd.com:learn-to-race/l2r-starter-kit.git
     ```
 
 3. **Install** competition specific dependencies!
     ```
-    cd learn-to-race-starter-kit
+    cd l2r-starter-kit
     pip install -r requirements.txt
     ```
 
-4. Try out the random agent by running `python rollout.py`. You should start the simulator first, by running `bash <simulator_path>/ArrivalSim-linux-0.7.1.188691/LinuxNoEditor/ArrivalSim.sh -openGL`.
+4. Try out the SAC agent by running `python rollout.py`. You should start the simulator first, by running `bash <simulator_path>/ArrivalSim-linux-0.7.1.188691/LinuxNoEditor/ArrivalSim.sh -openGL`. You can also checkout the [random agent](agents/random_agent.py) implementation for a minimal reference code.
 
-5. Write your own agent as described in [how to write your own agent](#how-to-write-your-own-agent) section.
+5. Write your own agent as described in [How to write your own agent](#how-to-write-your-own-agent) section.
 
-6. Make a submission as described in [how to make a submission](#how-to-make-a-submission) section.
+6. Make a submission as described in [How to make a submission](#how-to-make-a-submission) section.
 
-## How do I specify my software runtime / dependencies ?
+## How do I specify my software runtime / dependencies?
 
 We accept submissions with custom runtime, so you don't need to worry about which libraries or framework to pick from.
 
-The configuration files typically include `requirements.txt` (pypi packages), `environment.yml` (conda environment), `apt.txt` (apt packages) or even your own `Dockerfile`.
+The configuration files typically include `requirements.txt` (pypi packages), `apt.txt` (apt packages) or even your own `Dockerfile`.
 
-You can check detailed information about the same in the 👉 [RUNTIME.md](docs/runtime.md) file.
+You can check detailed information about the same in the 👉 [runtime.md](docs/runtime.md) file.
 
-## What should my code structure be like ?
+## What should my code structure be like?
 
 Please follow the example structure as it is in the starter kit for the code structure.
 The different files and directories have following meaning:
@@ -141,6 +115,10 @@ The different files and directories have following meaning:
 ├── requirements.txt       # Python packages to be installed
 ├── rollout.py             # Entrypoint to test your code locally (DO NOT EDIT, will be replaced during evaluation)
 ├── config.py              # File containing env, simulator and submission configuration
+├── l2r/                   # Directory containing L2R env specific scripts
+├── evaluator/             # Helper scripts for local evaluation (will be ignored during evaluation)
+├── racetracks/            # L2R racetrack data (DO NOT EDIT, will be replaced during evaluation)
+├── utility/               # Helper scripts to simplify submission flow
 └── agents                 # Place your agents related code here
     ├── base.py            # Code for base agent
     └── <my_agent>.py      # IMPORTANT: Your agent code
@@ -152,7 +130,7 @@ The `aicrowd.json` of each submission should contain the following content:
 
 ```json
 {
-  "challenge_id": "evaluations-api-music-demixing",
+  "challenge_id": "learn-to-race-autonomous-racing-virtual-challenge",
   "authors": ["your-aicrowd-username"],
   "description": "(optional) description about your awesome agent",
   "external_dataset_used": false
@@ -163,7 +141,7 @@ This JSON is used to map your submission to the challenge - so please remember t
 
 ## How to make a submission?
 
-👉 [SUBMISSION.md](/docs/submission.md)
+👉 [submission.md](/docs/submission.md)
 
 **Best of Luck** :tada: :tada:
 
@@ -200,13 +178,14 @@ This JSON is used to map your submission to the challenge - so please remember t
 
 ## Contributors
 
-// todo
+- [Jon Francis](https://www.aicrowd.com/participants/jon_francis)
+- [Shravya Bhat](https://www.aicrowd.com/participants/shravyab)
+- [Jyotish](https://www.aicrowd.com/participants/jyotish)
 
 # 📎 Important links
 
+💪 &nbsp;Challenge Page: https://www.aicrowd.com/challenges/learn-to-race-autonomous-racing-virtual-challenge
 
-💪 &nbsp;Challenge Page: https://www.aicrowd.com/challenges/iclr-2021-learn-to-race
+🗣️ &nbsp;Discussion Forum: https://www.aicrowd.com/challenges/learn-to-race-autonomous-racing-virtual-challenge/discussion
 
-🗣️ &nbsp;Discussion Forum: https://www.aicrowd.com/challenges/iclr-2021-learn-to-race/discussion
-
-🏆 &nbsp;Leaderboard: https://www.aicrowd.com/challenges/iclr-2021-learn-to-race/leaderboards
+🏆 &nbsp;Leaderboard: https://www.aicrowd.com/challenges/learn-to-race-autonomous-racing-virtual-challenge/leaderboards

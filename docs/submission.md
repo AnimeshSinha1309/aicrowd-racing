@@ -40,6 +40,8 @@ You can run the following to make a submission.
 
 `./utility/submit.sh` contains a few git commands that will push your code to AIcrowd GitLab.
 
+**Note:** In case you see an error message like `git: 'lfs' is not a git command. See 'git --help'.`, please make sure you have git LFS installed. You can install it using `git lfs install` or refer [Git LFS website](https://git-lfs.github.com/).
+
 ## Pushing the code manually
 
 ### IMPORTANT: Saving Models before submission!
@@ -75,4 +77,4 @@ and if everything works out correctly, then you should be able to see the final 
 
 ### Other helpful files
 
-👉 [RUNTIME.md](/docs/runtime.md)
+👉 [runtime.md](/docs/runtime.md)
