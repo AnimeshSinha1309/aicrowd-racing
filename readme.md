@@ -77,10 +77,12 @@ Update the `SubmissionConfig` in [config.py](config.py#L5) to use your new agent
 
 You can add your SSH Keys to your GitLab account by going to your profile settings [here](https://gitlab.aicrowd.com/profile/keys). If you do not have SSH Keys, you will first need to [generate one](https://docs.gitlab.com/ee/ssh/README.html#generating-a-new-ssh-key-pair).
 
+2. **Fork the repository**. You can use [this link](https://gitlab.aicrowd.com/learn-to-race/l2r-starter-kit/-/forks/new) to create a fork.
+
 2.  **Clone the repository**
 
     ```
-    git clone git@gitlab.aicrowd.com:learn-to-race/l2r-starter-kit.git
+    git clone git@gitlab.aicrowd.com:<YOUR_AICROWD_USERNAME>/l2r-starter-kit.git
     ```
 
 3. **Install** competition specific dependencies!
