@@ -11,17 +11,23 @@ class RandomAgent(BaseAgent):
     def select_action(self, obs) -> np.array:
         return self.action_space.sample()
 
+    def register_reset(self, obs) -> np.array:
+        pass
+
+    def load_model(self, path):
+        pass
+
+    def save_model(self, path):
+        pass
+
     def training(self, env):
-        info = {}
-        done = False
-        obs = env.reset()
-
+        """Train your agent here."""
         for _ in range(300):
-            action = self.select_action(obs)
-            obs, reward, done, info = env.step(action)
+            done = False
+            obs, _ = env.reset()
 
-            if done:
-                obs = env.reset()
-                done = False
+            while not done:
+                action = self.select_action(obs)
+                obs, reward, done, info = env.step(action)
 
-            ## Update your agent
+            # Update your agent

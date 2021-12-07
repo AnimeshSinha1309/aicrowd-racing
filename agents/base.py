@@ -11,7 +11,7 @@ class BaseAgent(ABC):
         """
         # Outputs action given the current observation
         obs: a dictionary
-            During local development, the particpants may specify their desired observations.
+            During local development, the participants may specify their desired observations.
             During evaluation on AICrowd, the participants will have access to
             obs =
             {
@@ -29,8 +29,8 @@ class BaseAgent(ABC):
 
     def register_reset(self, obs) -> np.array:
         """
-        # Same input/output as select_action, except this method is called at episodal reset.
-        # Defaults to select_action
+        Same input/output as select_action, except this method is called at episodal reset.
+        Defaults to select_action
         """
         return self.select_action(obs)
 
