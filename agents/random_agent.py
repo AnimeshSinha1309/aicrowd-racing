@@ -1,5 +1,7 @@
 import json
 import time
+
+import matplotlib.pyplot as plt
 import numpy as np
 from agents.base import BaseAgent
 
@@ -22,9 +24,13 @@ class RandomAgent(BaseAgent):
 
     def training(self, env):
         """Train your agent here."""
-        for _ in range(300):
+        for _ in range(1):
             done = False
             obs, _ = env.reset()
+
+            for image in obs[1]:
+                plt.imshow(image)
+                plt.show()
 
             while not done:
                 action = self.select_action(obs)

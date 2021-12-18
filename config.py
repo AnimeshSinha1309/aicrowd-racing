@@ -67,6 +67,30 @@ class EnvConfig(object):
             "Width": 512,
             "Height": 384,
             "bAutoAdvertise": True,
+        },
+        "CameraFrontSegm": {
+            "Addr": "tcp://0.0.0.0:9008",
+            "Format": "SegmBGR8",
+            "FOVAngle": 90,
+            "Width": 512,
+            "Height": 384,
+            "bAutoAdvertise": True,
+        },
+        "CameraBirdsEye": {
+            "Addr": "tcp://0.0.0.0:10008",
+            "Format": "ColorBGR8",
+            "FOVAngle": 90,
+            "Width": 512,
+            "Height": 384,
+            "bAutoAdvertise": True,
+        },
+        "CameraBirdsEyeSegm": {
+            "Addr": "tcp://0.0.0.0:10009",
+            "Format": "SegmBGR8",
+            "FOVAngle": 90,
+            "Width": 512,
+            "Height": 384,
+            "bAutoAdvertise": True,
         }
     }
 
@@ -76,6 +100,9 @@ class SimulatorConfig(object):
     active_sensors = [
         "CameraFrontRGB",
         "ImuOxtsSensor",
+        "CameraFrontSegm",
+        "CameraBirdsEye",
+        "CameraBirdsEyeSegm",
     ]
     driver_params = {
         "DriverAPIClass": "VApiUdp",
