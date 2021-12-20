@@ -10,7 +10,7 @@ import abc
 
 
 class AbstractAgent(abc.ABC):
-    """Abstract agent class. A potentially useful template for racing agents."""
+    """Abstract agent class. A potentially useful template for racing driviiit."""
 
     def __init__(self, *args, **kwargs):
         pass

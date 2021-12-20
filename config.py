@@ -1,8 +1,8 @@
-from agents.random_agent import RandomAgent
+from driviiit.agents.random_agent import DriverAgent
 
 
 class SubmissionConfig(object):
-    agent = RandomAgent
+    agent = DriverAgent
     pre_eval_time = 100
     eval_episodes = 10
 
@@ -69,6 +69,38 @@ class EnvConfig(object):
             "bAutoAdvertise": True,
         },
         "CameraFrontSegm": {
+            "Addr": "tcp://0.0.0.0:9008",
+            "Format": "SegmBGR8",
+            "FOVAngle": 90,
+            "Width": 512,
+            "Height": 384,
+            "bAutoAdvertise": True,
+        },
+        "CameraLeftRGB": {
+            "Addr": "tcp://0.0.0.0:8008",
+            "Format": "ColorBGR8",
+            "FOVAngle": 90,
+            "Width": 512,
+            "Height": 384,
+            "bAutoAdvertise": True,
+        },
+        "CameraLeftSegm": {
+            "Addr": "tcp://0.0.0.0:9008",
+            "Format": "SegmBGR8",
+            "FOVAngle": 90,
+            "Width": 512,
+            "Height": 384,
+            "bAutoAdvertise": True,
+        },
+        "CameraRightRGB": {
+            "Addr": "tcp://0.0.0.0:8008",
+            "Format": "ColorBGR8",
+            "FOVAngle": 90,
+            "Width": 512,
+            "Height": 384,
+            "bAutoAdvertise": True,
+        },
+        "CameraRightSegm": {
             "Addr": "tcp://0.0.0.0:9008",
             "Format": "SegmBGR8",
             "FOVAngle": 90,

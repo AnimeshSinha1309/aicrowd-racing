@@ -63,9 +63,9 @@ We recommend that you place the code for all your agents in the `agents` directo
 - `load_model` (Needed only in stage 2)
 - `save_model` (Needed only in stage 2)
   
-methods as specified in the [`BaseAgent`](agents/base.py) class. We recommend that you write your code in such a way that it implements `training`, `load_model`, and `save_model` methods as expected. This will ensure that your code is ready for stage 2 evaluations. 
+methods as specified in the [`BaseAgent`](driviiit/metas/base_agent.py) class. We recommend that you write your code in such a way that it implements `training`, `load_model`, and `save_model` methods as expected. This will ensure that your code is ready for stage 2 evaluations. 
 
-Please refer the [`BaseAgent`](agents/base.py) class for the input/output interfaces.
+Please refer the [`BaseAgent`](driviiit/metas/base_agent.py) class for the input/output interfaces.
 
 Update the `SubmissionConfig` in [config.py](config.py#L5) to use your new agent class instead of the `SACAgent`.
 
@@ -91,7 +91,7 @@ You can add your SSH Keys to your GitLab account by going to your profile settin
     pip install -r requirements.txt
     ```
 
-4. Try out the SAC agent by running `python rollout.py`. You should start the simulator first, by running `bash <simulator_path>/ArrivalSim-linux-0.7.1.188691/LinuxNoEditor/ArrivalSim.sh -openGL`. You can also checkout the [random agent](agents/random_agent.py) implementation for a minimal reference code.
+4. Try out the SAC agent by running `python rollout.py`. You should start the simulator first, by running `bash <simulator_path>/ArrivalSim-linux-0.7.1.188691/LinuxNoEditor/ArrivalSim.sh -openGL`. You can also checkout the [random agent](driviiit/agents/random_agent.py) implementation for a minimal reference code.
 
 5. Write your own agent as described in [How to write your own agent](#how-to-write-your-own-agent) section.
 
