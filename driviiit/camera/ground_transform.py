@@ -2,14 +2,7 @@ import typing as ty
 
 import numpy as np
 
-from driviiit.metas.vectors import CoordinateTransform
-
-CAMERA_FRONT_POSITION = CoordinateTransform(
-    x=2.099886, y=-0.000169, z=0.7,
-    pitch=0.0, roll=0.0, yaw=0.0
-)
-FIELD_OF_VIEW = 90.0
-IMAGE_SHAPE = (512, 384)
+from driviiit.interface.vectors import CoordinateTransform
 
 
 class CameraGroundTransformer:
@@ -24,7 +17,6 @@ class CameraGroundTransformer:
         k = self.get_camera_matrix(field_of_view, image_shape)
         rt = self.get_projection_matrix(camera_position)
         self.p = k @ rt
-
 
     @staticmethod
     def get_camera_matrix(field_of_view: float, image_shape: ty.Tuple[int, int]):
@@ -84,7 +76,7 @@ class CameraGroundTransformer:
     def pixel_ground_to_camera(self, x):
         p = self.p
         x_homogenous = np.expand_dims(np.array([x[0], x[1], 0, 1]), axis=1)
-        pix_homogenous = p @ x_homogenous
+        pix_homogenous = (p @ x_homogenous).reshape(-1)
         return pix_homogenous[:2] / pix_homogenous[2]
 
     def mask_camera_to_ground(self, image):

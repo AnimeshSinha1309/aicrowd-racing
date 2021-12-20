@@ -1,6 +1,6 @@
 import numpy as np
 
-from driviiit.metas.vectors import Vector, CoordinateTransform, WheelSensors
+from driviiit.interface.vectors import Vector, CoordinateTransform, WheelSensors
 
 
 class IMUSensorReading:

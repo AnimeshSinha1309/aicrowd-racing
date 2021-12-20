@@ -63,9 +63,9 @@ We recommend that you place the code for all your agents in the `agents` directo
 - `load_model` (Needed only in stage 2)
 - `save_model` (Needed only in stage 2)
   
-methods as specified in the [`BaseAgent`](driviiit/metas/base_agent.py) class. We recommend that you write your code in such a way that it implements `training`, `load_model`, and `save_model` methods as expected. This will ensure that your code is ready for stage 2 evaluations. 
+methods as specified in the [`BaseAgent`](driviiit/interface/metas.py) class. We recommend that you write your code in such a way that it implements `training`, `load_model`, and `save_model` methods as expected. This will ensure that your code is ready for stage 2 evaluations. 
 
-Please refer the [`BaseAgent`](driviiit/metas/base_agent.py) class for the input/output interfaces.
+Please refer the [`BaseAgent`](driviiit/interface/metas.py) class for the input/output interfaces.
 
 Update the `SubmissionConfig` in [config.py](config.py#L5) to use your new agent class instead of the `SACAgent`.
 

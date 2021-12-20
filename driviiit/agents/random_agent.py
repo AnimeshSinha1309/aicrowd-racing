@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from driviiit.metas.base_agent import BaseAgent
+from driviiit.interface.metas import BaseAgent
 from driviiit.loggers.tensor_logger import TensorLogger
 from driviiit.sensors.imu import IMUSensorReading
 
