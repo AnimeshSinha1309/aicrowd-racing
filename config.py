@@ -1,8 +1,8 @@
-from driviiit.agents.random_agent import DriverAgent
+from driviiit.agents.sac_agent import SACAgent
 
 
 class SubmissionConfig(object):
-    agent = DriverAgent
+    agent = SACAgent
     pre_eval_time = 100
     eval_episodes = 10
 

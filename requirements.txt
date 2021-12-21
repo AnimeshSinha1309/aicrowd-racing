@@ -1,6 +1,6 @@
-loguru
+loguru~=0.5.3
 aicrowd-gym
-scipy
+scipy~=1.7.3
 gym==0.20.0
 gast==0.2.2
 matplotlib>=3.3.2
@@ -13,6 +13,10 @@ stable-baselines
 torch>=1.10
 torchvision
 websocket_client==0.57.0
-tqdm
-ipdb
-tensorboardX
+tqdm~=4.62.3
+ipdb~=0.13.9
+tensorboardX~=2.4.1
+websocket-client~=0.57.0
+zmq~=0.0.0
+opencv-python~=4.5.4.60
+wandb~=0.12.9

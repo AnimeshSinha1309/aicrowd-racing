@@ -29,7 +29,7 @@ class CameraGroundTransformer:
         :rtype: np.array of shape (3, 3)
         :return: the camera intrinsics matrix
         """
-        focal_length = image_shape[0] / (2 * np.tan(field_of_view / 2))
+        focal_length = image_shape[1] / (2 * np.tan(field_of_view / 2))
         camera_matrix = np.array([
             [focal_length, 0, image_shape[0]],
             [0, focal_length, image_shape[1]],

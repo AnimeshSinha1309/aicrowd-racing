@@ -34,7 +34,7 @@ class IMUSensorReading:
 
     @property
     def speed(self):
-        return np.linalg.norm(self.reading[3:6])
+        return np.linalg.norm(self.reading[3:6]) * 2
 
     @property
     def position(self):

@@ -333,7 +333,7 @@ class RacingEnv(gym.Env):
             self.last_restart = time.time()
             self._restart_simulator()
 
-    def step(self, action):
+    def step(self, action: np.ndarray):
         """The primary method of the environment. Executes the desired action,
         receives the observation from the simulator, and evaluates termination
         conditions.
