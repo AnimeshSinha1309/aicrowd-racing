@@ -1,6 +1,8 @@
 data/
 shared/
 logs/
+wandb/
+saved/
 .gradle/
 *.pyc
 .idea

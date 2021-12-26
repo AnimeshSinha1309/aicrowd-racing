@@ -11,5 +11,9 @@ class RoadDistanceSensors:
     }
 
     def __init__(self, image):
-        road_mask = np.all(np.equal(image, self.SEGMENTATION_IMAGE_COLORS["ROAD"]), axis=2)
-        car_mask = np.all(np.equal(image, self.SEGMENTATION_IMAGE_COLORS["CAR"]), axis=2)
+        road_mask = np.all(
+            np.equal(image, self.SEGMENTATION_IMAGE_COLORS["ROAD"]), axis=2
+        )
+        car_mask = np.all(
+            np.equal(image, self.SEGMENTATION_IMAGE_COLORS["CAR"]), axis=2
+        )

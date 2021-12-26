@@ -4,19 +4,32 @@ from driviiit.interface.config import IMAGE_SHAPE
 
 
 class ActorNetwork(torch.nn.Module):
-
     def __init__(self):
         super().__init__()
-        self.conv1 = torch.nn.Conv2d(in_channels=3, out_channels=10, kernel_size=(3, 3), padding=1)
-        self.conv2 = torch.nn.Conv2d(in_channels=10, out_channels=10, kernel_size=(3, 3), padding=1)
+        self.conv1 = torch.nn.Conv2d(
+            in_channels=3, out_channels=10, kernel_size=(3, 3), padding=1
+        )
+        self.conv2 = torch.nn.Conv2d(
+            in_channels=10, out_channels=10, kernel_size=(3, 3), padding=1
+        )
         self.pool1 = torch.nn.MaxPool2d((2, 2))
-        self.conv3 = torch.nn.Conv2d(in_channels=10, out_channels=10, kernel_size=(3, 3), padding=1)
-        self.conv4 = torch.nn.Conv2d(in_channels=10, out_channels=10, kernel_size=(3, 3), padding=1)
+        self.conv3 = torch.nn.Conv2d(
+            in_channels=10, out_channels=10, kernel_size=(3, 3), padding=1
+        )
+        self.conv4 = torch.nn.Conv2d(
+            in_channels=10, out_channels=10, kernel_size=(3, 3), padding=1
+        )
         self.pool2 = torch.nn.MaxPool2d((2, 2))
-        self.conv5 = torch.nn.Conv2d(in_channels=10, out_channels=10, kernel_size=(3, 3), padding=1)
-        self.conv6 = torch.nn.Conv2d(in_channels=10, out_channels=10, kernel_size=(3, 3), padding=1)
+        self.conv5 = torch.nn.Conv2d(
+            in_channels=10, out_channels=10, kernel_size=(3, 3), padding=1
+        )
+        self.conv6 = torch.nn.Conv2d(
+            in_channels=10, out_channels=10, kernel_size=(3, 3), padding=1
+        )
         self.pool3 = torch.nn.MaxPool2d((2, 2))
-        self.fc1 = torch.nn.Linear(10 * (IMAGE_SHAPE[0] // 8) * (IMAGE_SHAPE[1] // 8), 120)
+        self.fc1 = torch.nn.Linear(
+            10 * (IMAGE_SHAPE[0] // 8) * (IMAGE_SHAPE[1] // 8), 120
+        )
         self.fc2 = torch.nn.Linear(120, 84)
         self.acceleration_head = torch.nn.Linear(84, 1)
         self.steering_head = torch.nn.Linear(84, 1)

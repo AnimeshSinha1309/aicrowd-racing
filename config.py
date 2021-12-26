@@ -1,4 +1,4 @@
-from driviiit.agents.sac_agent import SACAgent
+from agents.sac.sac_agent import SACAgent
 
 
 class SubmissionConfig(object):

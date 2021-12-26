@@ -1,11 +1,5 @@
-import numpy as np
 import torch, torch.nn.functional
-
-import ipdb as pdb
-
-
-LOG_STD_MAX = 2
-LOG_STD_MIN = -20
+import numpy as np
 
 
 def mlp(sizes, activation=torch.nn.ReLU, output_activation=torch.nn.Identity):
@@ -16,8 +10,15 @@ def mlp(sizes, activation=torch.nn.ReLU, output_activation=torch.nn.Identity):
     return torch.nn.Sequential(*layers)
 
 
-class SquashedGaussianMLPActor(torch.nn.Module):
+def count_vars(module):
+    return sum([np.prod(p.shape) for p in module.parameters()])
 
+
+LOG_STD_MAX = 2
+LOG_STD_MIN = -20
+
+
+class SquashedGaussianMLPActor(torch.nn.Module):
     def __init__(self, obs_dim, act_dim, hidden_sizes, activation, act_limit):
         super().__init__()
         self.net = mlp([obs_dim] + list(hidden_sizes), activation, activation)
@@ -33,11 +34,7 @@ class SquashedGaussianMLPActor(torch.nn.Module):
         std = torch.exp(log_std)
 
         # Pre-squash distribution and sample
-        try:
-            pi_distribution = torch.distributions.normal.Normal(mu, std)
-        except ValueError:
-            pdb.set_trace()
-            pass
+        pi_distribution = torch.distributions.normal.Normal(mu, std)
 
         if deterministic:
             # Only used for evaluating policy at test time.
@@ -52,7 +49,9 @@ class SquashedGaussianMLPActor(torch.nn.Module):
             # and look in appendix C. This is a more numerically-stable equivalent to Eq 21.
             # Try deriving it yourself as a (very difficult) exercise. :)
             logp_pi = pi_distribution.log_prob(pi_action).sum(axis=-1)
-            tmp = (2 * (np.log(2) - pi_action - torch.nn.functional.softplus(-2 * pi_action)))
+            tmp = 2 * (
+                np.log(2) - pi_action - torch.nn.functional.softplus(-2 * pi_action)
+            )
             tmp = tmp.sum(axis=(1 if len(tmp.shape) > 1 else -1))
             logp_pi -= tmp
         else:
@@ -64,26 +63,87 @@ class SquashedGaussianMLPActor(torch.nn.Module):
         return pi_action, logp_pi
 
 
+class MLPQFunction(torch.nn.Module):
+    def __init__(self, obs_dim, act_dim, hidden_sizes, activation):
+        super().__init__()
+        self.q = mlp([obs_dim + act_dim] + list(hidden_sizes) + [1], activation)
+
+    def forward(self, obs, act):
+        q = self.q(torch.cat([obs, act], dim=-1))
+        return torch.squeeze(q, -1)  # Critical to ensure q has right shape.
+
+
+class MLPActorCritic(torch.nn.Module):
+    def __init__(
+        self,
+        observation_space,
+        action_space,
+        hidden_sizes=(256, 256),
+        activation=torch.nn.ReLU,
+        latent_dims=None,
+        device="cpu",
+    ):
+        super().__init__()
+
+        obs_dim = observation_space.shape[0] if latent_dims is None else latent_dims
+        act_dim = action_space.shape[0]
+        act_limit = action_space.high[0]
+
+        # build policy and value functions
+        self.pi = SquashedGaussianMLPActor(
+            obs_dim, act_dim, hidden_sizes, activation, act_limit
+        )
+        self.q1 = MLPQFunction(obs_dim, act_dim, hidden_sizes, activation)
+        self.q2 = MLPQFunction(obs_dim, act_dim, hidden_sizes, activation)
+        self.device = device
+        self.to(device)
+
+    def act(self, obs, deterministic=False):
+        with torch.no_grad():
+            a, _ = self.pi(obs, deterministic, False)
+            return a.numpy() if self.device == "cpu" else a.cpu().numpy()
+
+
+def resnet18(pretrained=True):
+    model = torch.hub.load("pytorch/vision:v0.6.0", "resnet18", pretrained=pretrained)
+    for param in model.parameters():
+        param.requires_grad = False
+    model.fc = torch.nn.Identity()
+    return model
+
+
 class Qfunction(torch.nn.Module):
-    '''
+    """
     Modified from the core MLPQFunction and MLPActorCritic to include a speed encoder
-    '''
+    """
 
     def __init__(self, cfg):
         super().__init__()
         self.cfg = cfg
         # pdb.set_trace()
-        self.speed_encoder = mlp([1] + self.cfg[self.cfg['use_encoder_type']]['speed_hiddens'])
-        self.regressor = mlp([self.cfg[self.cfg['use_encoder_type']]['latent_dims'] +
-                              self.cfg[self.cfg['use_encoder_type']]['speed_hiddens'][-1] + 2] +
-                             self.cfg[self.cfg['use_encoder_type']]['hiddens'] + [1])
+        self.speed_encoder = mlp(
+            [1] + self.cfg[self.cfg["use_encoder_type"]]["speed_hiddens"]
+        )
+        self.regressor = mlp(
+            [
+                self.cfg[self.cfg["use_encoder_type"]]["latent_dims"]
+                + self.cfg[self.cfg["use_encoder_type"]]["speed_hiddens"][-1]
+                + 2
+            ]
+            + self.cfg[self.cfg["use_encoder_type"]]["hiddens"]
+            + [1]
+        )
         # self.lr = cfg['resnet']['LR']
 
     def forward(self, obs_feat, action):
         # if obs_feat.ndimension() == 1:
         #    obs_feat = obs_feat.unsqueeze(0)
-        img_embed = obs_feat[..., :self.cfg[self.cfg['use_encoder_type']]['latent_dims']]  # n x latent_dims
-        speed = obs_feat[..., self.cfg[self.cfg['use_encoder_type']]['latent_dims']:]  # n x 1
+        img_embed = obs_feat[
+            ..., : self.cfg[self.cfg["use_encoder_type"]]["latent_dims"]
+        ]  # n x latent_dims
+        speed = obs_feat[
+            ..., self.cfg[self.cfg["use_encoder_type"]]["latent_dims"] :
+        ]  # n x 1
         spd_embed = self.speed_encoder(speed)  # n x 16
         out = self.regressor(torch.cat([img_embed, spd_embed, action], dim=-1))  # n x 1
         # pdb.set_trace()
@@ -91,49 +151,68 @@ class Qfunction(torch.nn.Module):
 
 
 class DuelingNetwork(torch.nn.Module):
-    '''
+    """
     Further modify from Qfunction to
         - Add an action_encoder
         - Separate state-dependent value and advantage
             Q(s, a) = V(s) + A(s, a)
-    '''
+    """
 
     def __init__(self, cfg):
         super().__init__()
         self.cfg = cfg
 
-        self.speed_encoder = mlp([1] + self.cfg[self.cfg['use_encoder_type']]['speed_hiddens'])
-        self.action_encoder = mlp([2] + self.cfg[self.cfg['use_encoder_type']]['action_hiddens'])
+        self.speed_encoder = mlp(
+            [1] + self.cfg[self.cfg["use_encoder_type"]]["speed_hiddens"]
+        )
+        self.action_encoder = mlp(
+            [2] + self.cfg[self.cfg["use_encoder_type"]]["action_hiddens"]
+        )
 
-        n_obs = self.cfg[self.cfg['use_encoder_type']]['latent_dims'] + \
-                self.cfg[self.cfg['use_encoder_type']]['speed_hiddens'][-1]
+        n_obs = (
+            self.cfg[self.cfg["use_encoder_type"]]["latent_dims"]
+            + self.cfg[self.cfg["use_encoder_type"]]["speed_hiddens"][-1]
+        )
         # self.V_network = mlp([n_obs] + self.cfg[self.cfg['use_encoder_type']]['hiddens'] + [1])
-        self.A_network = mlp([n_obs + self.cfg[self.cfg['use_encoder_type']]['action_hiddens'][-1]] +
-                             self.cfg[self.cfg['use_encoder_type']]['hiddens'] + [1])
+        self.A_network = mlp(
+            [n_obs + self.cfg[self.cfg["use_encoder_type"]]["action_hiddens"][-1]]
+            + self.cfg[self.cfg["use_encoder_type"]]["hiddens"]
+            + [1]
+        )
         # self.lr = cfg['resnet']['LR']
 
     def forward(self, obs_feat, action, advantage_only=False):
         # if obs_feat.ndimension() == 1:
         #    obs_feat = obs_feat.unsqueeze(0)
-        img_embed = obs_feat[..., :self.cfg[self.cfg['use_encoder_type']]['latent_dims']]  # n x latent_dims
-        speed = obs_feat[..., self.cfg[self.cfg['use_encoder_type']]['latent_dims']:]  # n x 1
+        img_embed = obs_feat[
+            ..., : self.cfg[self.cfg["use_encoder_type"]]["latent_dims"]
+        ]  # n x latent_dims
+        speed = obs_feat[
+            ..., self.cfg[self.cfg["use_encoder_type"]]["latent_dims"] :
+        ]  # n x 1
         spd_embed = self.speed_encoder(speed)  # n x 16
         action_embed = self.action_encoder(action)
 
         out = self.A_network(torch.cat([img_embed, spd_embed, action_embed], dim=-1))
-        '''
+        """
         if advantage_only == False:
             V = self.V_network(torch.cat([img_embed, spd_embed], dim = -1)) # n x 1
             out += V
-        '''
+        """
         return out.view(-1)
 
 
 class ActorCritic(torch.nn.Module):
-    def __init__(self, observation_space, action_space, cfg,
-                 activation=torch.nn.ReLU, latent_dims=None, device='cpu',
-                 safety=False  ## Flag to indicate architecture for Safety_actor_critic
-                 ):
+    def __init__(
+        self,
+        observation_space,
+        action_space,
+        cfg,
+        activation=torch.nn.ReLU,
+        latent_dims=None,
+        device="cpu",
+        safety=False,  # Flag to indicate architecture for Safety_actor_critic
+    ):
         super().__init__()
         self.cfg = cfg
         obs_dim = observation_space.shape[0] if latent_dims is None else latent_dims
@@ -141,9 +220,16 @@ class ActorCritic(torch.nn.Module):
         act_limit = action_space.high[0]
 
         # build policy and value functions
-        self.speed_encoder = mlp([1] + self.cfg[self.cfg['use_encoder_type']]['speed_hiddens'])
+        self.speed_encoder = mlp(
+            [1] + self.cfg[self.cfg["use_encoder_type"]]["speed_hiddens"]
+        )
         self.policy = SquashedGaussianMLPActor(
-            obs_dim, act_dim, cfg[cfg['use_encoder_type']]['actor_hiddens'], activation, act_limit)
+            obs_dim,
+            act_dim,
+            cfg[cfg["use_encoder_type"]]["actor_hiddens"],
+            activation,
+            act_limit,
+        )
         if safety:
             self.q1 = DuelingNetwork(cfg)
         else:
@@ -155,8 +241,12 @@ class ActorCritic(torch.nn.Module):
     def pi(self, obs_feat, deterministic=False):
         # if obs_feat.ndimension() == 1:
         #    obs_feat = obs_feat.unsqueeze(0)
-        img_embed = obs_feat[..., :self.cfg[self.cfg['use_encoder_type']]['latent_dims']]  # n x latent_dims
-        speed = obs_feat[..., self.cfg[self.cfg['use_encoder_type']]['latent_dims']:]  # n x 1
+        img_embed = obs_feat[
+            ..., : self.cfg[self.cfg["use_encoder_type"]]["latent_dims"]
+        ]  # n x latent_dims
+        speed = obs_feat[
+            ..., self.cfg[self.cfg["use_encoder_type"]]["latent_dims"] :
+        ]  # n x 1
         spd_embed = self.speed_encoder(speed)  # n x 8
         feat = torch.cat([img_embed, spd_embed], dim=-1)
         return self.policy(feat, deterministic, True)
@@ -165,11 +255,15 @@ class ActorCritic(torch.nn.Module):
         # if obs_feat.ndimension() == 1:
         #    obs_feat = obs_feat.unsqueeze(0)
         with torch.no_grad():
-            img_embed = obs_feat[..., :self.cfg[self.cfg['use_encoder_type']]['latent_dims']]  # n x latent_dims
-            speed = obs_feat[..., self.cfg[self.cfg['use_encoder_type']]['latent_dims']:]  # n x 1
+            img_embed = obs_feat[
+                ..., : self.cfg[self.cfg["use_encoder_type"]]["latent_dims"]
+            ]  # n x latent_dims
+            speed = obs_feat[
+                ..., self.cfg[self.cfg["use_encoder_type"]]["latent_dims"] :
+            ]  # n x 1
             # pdb.set_trace()
             spd_embed = self.speed_encoder(speed)  # n x 8
             feat = torch.cat([img_embed, spd_embed], dim=-1)
             a, _ = self.policy(feat, deterministic, False)
             a = a.squeeze(0)
-        return a.numpy() if self.device == 'cpu' else a.cpu().numpy()
+        return a.numpy() if self.device == "cpu" else a.cpu().numpy()

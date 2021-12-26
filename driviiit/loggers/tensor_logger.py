@@ -2,9 +2,10 @@ import numpy as np
 
 
 class TensorLogger:
-
     def __init__(self, name=None):
-        self.name = name if name is not None else f"tensor_log_{np.random.randint(99999999):08}"
+        self.name = (
+            name if name is not None else f"tensor_log_{np.random.randint(99999999):08}"
+        )
         self.tensors = []
         self.size_limit = 1000
         self.cur_file = 0

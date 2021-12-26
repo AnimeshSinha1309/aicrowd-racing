@@ -4,7 +4,6 @@ from driviiit.interface.vectors import Vector, CoordinateTransform, WheelSensors
 
 
 class IMUSensorReading:
-
     def __init__(self, imu_vector):
         self.reading = imu_vector
 
@@ -39,8 +38,12 @@ class IMUSensorReading:
     @property
     def position(self):
         return CoordinateTransform(
-            x=self.reading[15], y=self.reading[16], z=self.reading[17],
-            yaw=self.reading[12], pitch=self.reading[13], roll=self.reading[14]
+            x=self.reading[15],
+            y=self.reading[16],
+            z=self.reading[17],
+            yaw=self.reading[12],
+            pitch=self.reading[13],
+            roll=self.reading[14],
         )
 
     @property
