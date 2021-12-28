@@ -1,12 +1,9 @@
-import logging
-
 import numpy as np
 
 from driviiit.interface.metas import BaseAgent
 from driviiit.loggers.tensor_logger import TensorLogger
 from driviiit.sensors.imu import IMUSensorReading
-from driviiit.camera.ground_transform import CameraGroundTransformer
-from driviiit.interface.config import FIELD_OF_VIEW, IMAGE_SHAPE, CAMERA_FRONT_POSITION
+from driviiit.camera.track_visualizations import plot_track_boundaries_on_camera
 from l2r.envs.env import RacingEnv
 
 
@@ -29,18 +26,11 @@ class DriverAgent(BaseAgent):
             if log_data
             else []
         )
-        self.cg = CameraGroundTransformer(
-            FIELD_OF_VIEW, IMAGE_SHAPE, CAMERA_FRONT_POSITION
-        )
 
     def select_action(self, obs) -> np.array:
         imu = IMUSensorReading(obs[0])
 
-        road_mask = np.all(np.equal(obs[1][1], np.array([204, 80, 109])), axis=2)
-        road_points = self.cg.mask_camera_to_ground(road_mask)
-        road_shift = np.mean(road_points[road_points[:, 0] > -2.2, 1]) + 1.1
-
-        steering_angle = -np.clip(road_shift / 1.2, -1.0, 1.0)
+        steering_angle = 0.0
         acceleration = 1.0 if imu.speed < 40 else (-0.2 if imu.speed > 50 else 0.0)
         return np.array([steering_angle, acceleration])
 
@@ -49,13 +39,15 @@ class DriverAgent(BaseAgent):
 
     def training(self, env: RacingEnv):
         """Train your agent here."""
-        for _ in range(1):
+        for _ in range(10):
             done = False
             obs, _ = env.reset()
+            plot_track_boundaries_on_camera(obs, env)
 
             while not done:
                 self.loggers[0].log(obs[0])
-                for i in range(len(self.loggers)):
+                for i in range(len(self.loggers) - 1):
                     self.loggers[i + 1].log(obs[1][i])
                 action = self.select_action(obs)
                 obs, reward, done, info = env.step(action)
+                plot_track_boundaries_on_camera(obs, env)

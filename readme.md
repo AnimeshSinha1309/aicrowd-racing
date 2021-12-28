@@ -91,7 +91,7 @@ You can add your SSH Keys to your GitLab account by going to your profile settin
     pip install -r requirements.txt
     ```
 
-4. Try out the SAC agent by running `python rollout.py`. You should start the simulator first, by running `bash <simulator_path>/ArrivalSim-linux-0.7.1.188691/LinuxNoEditor/ArrivalSim.sh -openGL`. You can also checkout the [random agent](driviiit/agents/analysis_agent.py) implementation for a minimal reference code.
+4. Try out the SAC agent by running `python rollout.py`. You should start the simulator first, by running `bash <simulator_path>/ArrivalSim-linux-0.7.1.188691/LinuxNoEditor/ArrivalSim.sh -openGL`. You can also checkout the [random agent](driviiit/agents/analyzer/analysis_agent.py) implementation for a minimal reference code.
 
 5. Write your own agent as described in [How to write your own agent](#how-to-write-your-own-agent) section.
 

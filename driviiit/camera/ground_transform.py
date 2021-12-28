@@ -3,6 +3,13 @@ import typing as ty
 import numpy as np
 
 from driviiit.interface.vectors import CoordinateTransform
+from driviiit.sensors.imu import IMUSensorReading
+from driviiit.camera.camera_utils import (
+    camera_details_to_intrinsic_matrix,
+    euler_angles_to_transformation_matrix,
+    apply_homogenous_transform,
+    invert_affine_orthogonal_matrix,
+)
 
 
 class CameraGroundTransformer:
@@ -14,71 +21,9 @@ class CameraGroundTransformer:
         image_shape: ty.Tuple[int, int],
         camera_position: CoordinateTransform,
     ):
-        k = self.get_camera_matrix(field_of_view, image_shape)
-        rt = self.get_projection_matrix(camera_position)
+        k = camera_details_to_intrinsic_matrix(field_of_view, image_shape)
+        rt = euler_angles_to_transformation_matrix(camera_position)
         self.p = k @ rt
-
-    @staticmethod
-    def get_camera_matrix(field_of_view: float, image_shape: ty.Tuple[int, int]):
-        """
-        Generate camera intrinsics matrix from the angular field of view and shape of the image
-        :type field_of_view: float
-        :param field_of_view: angular value of the field of view
-        :type image_shape: tuple[int, int]
-        :param image_shape: tuple representing the shape of the image
-        :rtype: np.array of shape (3, 3)
-        :return: the camera intrinsics matrix
-        """
-        focal_length = image_shape[1] / (2 * np.tan(field_of_view / 2))
-        camera_matrix = np.array(
-            [
-                [focal_length, 0, image_shape[0]],
-                [0, focal_length, image_shape[1]],
-                [0, 0, 1],
-            ]
-        )
-        return camera_matrix
-
-    @staticmethod
-    def get_projection_matrix(coordinate_transform: CoordinateTransform):
-        """
-        Generates the coordinate transform matrix from linear shift and euler angles
-        :type coordinate_transform: CoordinateTransform
-        :param coordinate_transform: Object containing values of (x, y, z, pitch, roll, yaw)
-        :rtype: np.array of shape (3, 4)
-        :return: The coordinate transform matrix
-        """
-        theta = np.array(
-            [
-                coordinate_transform.pitch,
-                coordinate_transform.roll,
-                coordinate_transform.yaw,
-            ]
-        )
-        shift = np.array(
-            [coordinate_transform.x, coordinate_transform.y, coordinate_transform.z]
-        )
-        net_rotation = np.eye(3)
-        for i in range(3):
-            rot = np.array(
-                [
-                    [np.cos(theta[i]), -np.sin(theta[i])],
-                    [np.sin(theta[i]), np.cos(theta[i])],
-                ]
-            )
-            cur_rotation = np.eye(3)
-            for x in range(3):
-                for y in range(3):
-                    cur_rotation[x, y] = (
-                        rot[x - (1 if x >= i else 0), y - (1 if y >= i else 0)]
-                        if x != i and y != i
-                        else x == y
-                    )
-            net_rotation = cur_rotation @ net_rotation
-        transform = np.concatenate(
-            [net_rotation, np.expand_dims(shift, axis=1)], axis=1
-        )
-        return transform
 
     def pixel_camera_to_ground(self, x):
         p = self.p
@@ -131,3 +76,31 @@ class CameraGroundTransformer:
             ]
         )
         return image_points
+
+
+def ground_points_to_camera(
+    track: np.array,
+    imu: IMUSensorReading,
+    camera_position: CoordinateTransform,
+    camera_intrinsics: np.array
+) -> np.array:
+    """
+    Converts points on the ground to their corresponding points in the image frame
+    :param track: The points on the ground frame to convert
+    :param imu: The reading from the imu giving us the pose of the car
+    :param camera_position: The 3-d pose of the camera
+    :param camera_intrinsics: The k matrix containing info on image size and focal length
+    """
+    # Translate and rotate the points to be in the frame of reference of the car
+    pts = track - np.array([imu.position.x, imu.position.y])
+    yaw = imu.position.yaw
+    pts = pts @ np.array([[np.cos(yaw), np.sin(yaw)], [-np.sin(yaw), np.cos(yaw)]])
+    # Come in the pose of the camera with only points in the front and swap axis z correctly
+    pts_front = pts[pts[:, 1] > 0, :]
+    pts_front = np.concatenate([pts_front, np.zeros((len(pts_front), 1))], axis=1)
+    rt = euler_angles_to_transformation_matrix(camera_position)
+    pts_cam = apply_homogenous_transform(invert_affine_orthogonal_matrix(rt), pts_front)
+    pts_cam = np.stack([pts_cam[:, 0], pts_cam[:, 2], pts_cam[:, 1]], axis=1)
+    # Apply the intrinsics to get an image and return the results
+    pts_out = apply_homogenous_transform(camera_intrinsics, pts_cam)
+    return pts_out

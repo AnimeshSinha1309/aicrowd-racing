@@ -1,6 +1,8 @@
+import logging
 import tempfile
 import timeout_decorator
-from loguru import logger
+
+import wandb
 
 from evaluator.evaluator import Learn2RaceEvaluator
 from config import SubmissionConfig, EnvConfig, SimulatorConfig
@@ -13,7 +15,7 @@ def training_routine(evaluator):
     try:
         evaluator.train()
     except timeout_decorator.TimeoutError:
-        logger.info("Stopping pre-evaluation run")
+        logging.info("Stopping pre-evaluation run")
 
     evaluator.save_agent_model(pre_evaluate_model_path)
 
@@ -21,7 +23,7 @@ def training_routine(evaluator):
 def evaluation_routine(evaluator):
     evaluator.load_agent_model(pre_evaluate_model_path)
     scores = evaluator.evaluate()
-    logger.success(f"Average metrics: {scores}")
+    logging.info(f"Success: Average metrics: {scores}")
 
 
 def run_evaluation():
@@ -34,11 +36,13 @@ def run_evaluation():
     evaluator.create_env()
     evaluator.init_agent()
 
-    ## Local development OR Stage 2 'practice' phase
+    # Local development OR Stage 2 'practice' phase
     training_routine(evaluator)
-    ## Evaluation
+    # Evaluation
     evaluation_routine(evaluator)
 
 
 if __name__ == "__main__":
+    wandb.init(project="aicrowd-racing", name="sac-training-1", save_code=False)
+
     run_evaluation()

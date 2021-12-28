@@ -38,8 +38,8 @@ class IMUSensorReading:
     @property
     def position(self):
         return CoordinateTransform(
-            x=self.reading[15],
-            y=self.reading[16],
+            x=self.reading[16],
+            y=self.reading[15],
             z=self.reading[17],
             yaw=self.reading[12],
             pitch=self.reading[13],

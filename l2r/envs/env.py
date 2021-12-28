@@ -19,9 +19,8 @@ from gym.spaces import Box, Dict
 from scipy.spatial import KDTree
 
 import l2r.envs.utils as utils
-from l2r.baselines.reward import CustomReward
+from driviiit.rewards.analysis_reward import AnalyzerReward
 from l2r.core.controller import SimulatorController
-from l2r.envs.reward import GranTurismo
 from l2r.core.tracker import ProgressTracker
 from racetracks.mapping import level_2_trackmap
 
@@ -196,9 +195,9 @@ class RacingEnv(gym.Env):
             )
 
         self.reward = (
-            GranTurismo(**reward_kwargs)
+            AnalyzerReward(**reward_kwargs)
             if self.reward_pol == "default"
-            else CustomReward(**reward_kwargs)
+            else AnalyzerReward(**reward_kwargs)
         )
 
         # openAI gym compliance - action space
