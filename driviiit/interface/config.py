@@ -8,3 +8,10 @@ CAMERA_FRONT_POSITION = CoordinateTransform(
 )
 FIELD_OF_VIEW = np.pi / 2
 IMAGE_SHAPE = (512, 384)
+
+SEGMENTATION_COLORS_MAP = {
+    "GROUND": np.array([13, 255, 13]),
+    "SKY": np.array([13, 255, 255]),
+    "CAR": np.array([65, 16, 149]),
+    "ROAD": np.array([204, 80, 109]),
+}

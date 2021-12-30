@@ -104,3 +104,56 @@ def ground_points_to_camera(
     # Apply the intrinsics to get an image and return the results
     pts_out = apply_homogenous_transform(camera_intrinsics, pts_cam)
     return pts_out
+
+
+def camera_points_to_ground(
+    points: np.array,
+    imu: IMUSensorReading,
+    camera_position: CoordinateTransform,
+    camera_intrinsics: np.array
+) -> np.array:
+    """
+    Function to map image points from a camera to their actual 3d coordinates
+    Only works for a horizontal camera, i.e. z axis perpendicular to the ground normal
+
+    Computing (x, y) given k, X, Y using the relation
+        [X, Y, homogeneous] = k @ [x, y, z]
+
+    (k[0, 0] * x + k[0, 1] * y + k[0, 2] * z) / (k[2, 0] * x + k[2, 1] * y + k[2, 2] * z) = X
+    (k[1, 0] * x + k[1, 1] * y + k[1, 2] * z) / (k[2, 0] * x + k[2, 1] * y + k[2, 2] * z) = Y
+
+    k[0, 0] * x + k[0, 1] * y + k[0, 2] * z = k[2, 0] * X * x + k[2, 1] * X * y + k[2, 2] * X * z
+    k[1, 0] * x + k[1, 1] * y + k[1, 2] * z = k[2, 0] * Y * x + k[2, 1] * Y * y + k[2, 2] * Y * z
+
+    (k[0, 0] - k[2, 0] * X) * x + (k[0, 1] - k[2, 1] * X) * y + (k[0, 2] - k[2, 2] * X) * z = 0
+    (k[1, 0] - k[2, 0] * Y) * x + (k[1, 1] - k[2, 1] * Y) * y + (k[1, 2] - k[2, 2] * Y) * z = 0
+
+    Rewriting this as a1 * x + b1 * y + c1 * z = 0 and a2 * x + b2 * y + c2 * z = 0
+    a2 * b1 * y + a2 * c1 * z = a1 * b2 * y + a1 * c2 * z
+    We can state that
+        x = (c1 * b2 - c2 * b1) * y / (c2 * a1 - c1 * a2)
+        z = (a1 * b2 - a2 * b1) * y / (a2 * c1 - a1 * c2)
+    """
+    # Solve linear equations to get the coordinates in the camera frame in 3D (i.e. projected on ground)
+    k = camera_intrinsics
+    y = camera_position.z  # height from the ground plane, in camera frame it's y
+
+    im_x, im_y = points[:, 0], points[:, 1]
+    a1, b1, c1 = k[0, 0] - k[2, 0] * im_x, k[0, 1] - k[2, 1] * im_x, k[0, 2] - k[2, 2] * im_x
+    a2, b2, c2 = k[1, 0] - k[2, 0] * im_y, k[1, 1] - k[2, 1] * im_y, k[1, 2] - k[2, 2] * im_y
+    x = (c1 * b2 - c2 * b1) * y / (c2 * a1 - c1 * a2)
+    z = (a1 * b2 - a2 * b1) * y / (a2 * c1 - a1 * c2)
+    # Mask out the low reliability points, only keep the ones we are sure of
+    mask = np.logical_and(np.abs(x) < 50, z < 100)
+    x = x[mask]
+    z = z[mask]
+    pts_ground = np.stack([x, z, np.full(shape=len(x), fill_value=y)], axis=1)
+    # Rotate and translate using the camera pose and the car pose
+    rt = euler_angles_to_transformation_matrix(camera_position)
+    rt[2, 3] = 0  # We already lifted the frame for the camera, so z axis should be left as it
+    pts_car = apply_homogenous_transform(rt, pts_ground)
+    pts_car = pts_car[:, :2]
+    yaw = imu.position.yaw
+    pts_world = pts_car @ np.array([[np.cos(yaw), np.sin(yaw)], [-np.sin(yaw), np.cos(yaw)]]).T
+    pts_world = np.array([imu.position.x, imu.position.y]) - pts_world
+    return pts_world
