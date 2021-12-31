@@ -106,7 +106,7 @@ def ground_points_to_camera(
     return pts_out
 
 
-def camera_points_to_ground(
+def camera_points_to_car(
     points: np.array,
     imu: IMUSensorReading,
     camera_position: CoordinateTransform,
@@ -144,15 +144,24 @@ def camera_points_to_ground(
     x = (c1 * b2 - c2 * b1) * y / (c2 * a1 - c1 * a2)
     z = (a1 * b2 - a2 * b1) * y / (a2 * c1 - a1 * c2)
     # Mask out the low reliability points, only keep the ones we are sure of
-    mask = np.logical_and(np.abs(x) < 50, z < 100)
-    x = x[mask]
-    z = z[mask]
+    mask = np.abs(z) < 50
+    x, z = x[mask], z[mask]
     pts_ground = np.stack([x, z, np.full(shape=len(x), fill_value=y)], axis=1)
     # Rotate and translate using the camera pose and the car pose
     rt = euler_angles_to_transformation_matrix(camera_position)
     rt[2, 3] = 0  # We already lifted the frame for the camera, so z axis should be left as it
     pts_car = apply_homogenous_transform(rt, pts_ground)
     pts_car = pts_car[:, :2]
+    return pts_car
+
+
+def camera_points_to_ground(
+    points: np.array,
+    imu: IMUSensorReading,
+    camera_position: CoordinateTransform,
+    camera_intrinsics: np.array
+) -> np.array:
+    pts_car = camera_points_to_car(points, imu, camera_position, camera_intrinsics)
     yaw = imu.position.yaw
     pts_world = pts_car @ np.array([[np.cos(yaw), np.sin(yaw)], [-np.sin(yaw), np.cos(yaw)]]).T
     pts_world = np.array([imu.position.x, imu.position.y]) - pts_world
