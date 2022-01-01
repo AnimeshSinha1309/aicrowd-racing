@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 from driviiit.interface.vectors import CoordinateTransform
 
@@ -15,3 +16,5 @@ SEGMENTATION_COLORS_MAP = {
     "CAR": np.array([65, 16, 149]),
     "ROAD": np.array([204, 80, 109]),
 }
+
+DEVICE = torch.device('cuda')

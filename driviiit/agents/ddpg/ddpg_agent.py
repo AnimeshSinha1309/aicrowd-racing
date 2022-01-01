@@ -1,13 +1,15 @@
-import logging
+import typing as ty
 
 import numpy as np
 
 from driviiit.interface.metas import BaseAgent
 from driviiit.loggers.tensor_logger import TensorLogger
-from driviiit.sensors.imu import IMUSensorReading
-from driviiit.camera.ground_transform import CameraGroundTransformer
+from driviiit.sensors.imu_readings import IMUSensorReading
+from sensors.camera_ground import CameraGroundTransformer
 from driviiit.interface.config import FIELD_OF_VIEW, IMAGE_SHAPE, CAMERA_FRONT_POSITION
-from l2r.envs.env import RacingEnv
+
+if ty.TYPE_CHECKING:
+    from l2r.envs.env import RacingEnv
 
 
 class DriverAgent(BaseAgent):
@@ -47,7 +49,7 @@ class DriverAgent(BaseAgent):
     def register_reset(self, obs) -> np.array:
         pass
 
-    def training(self, env: RacingEnv):
+    def training(self, env: "RacingEnv"):
         """Train your agent here."""
         for _ in range(1):
             done = False

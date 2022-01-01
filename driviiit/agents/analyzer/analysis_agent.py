@@ -1,55 +1,48 @@
 import typing as ty
 
 import numpy as np
+import torch
 
 from driviiit.interface.metas import BaseAgent
 from driviiit.loggers.tensor_logger import TensorLogger
-from driviiit.sensors.imu import IMUSensorReading
+from driviiit.sensors.imu_readings import IMUSensorReading
 from driviiit.interface.config import (
     SEGMENTATION_COLORS_MAP,
     IMAGE_SHAPE,
     FIELD_OF_VIEW,
     CAMERA_FRONT_POSITION,
+    DEVICE,
 )
-from driviiit.camera.ground_transform import (
+from driviiit.sensors.camera_ground import (
     camera_points_to_car,
     camera_details_to_intrinsic_matrix,
 )
-from driviiit.camera.track_visualizations import (
-    plot_track_boundaries_on_camera,
-    plot_camera_points_on_map,
-    plot_local_camera_map,
-)
+from driviiit.models.segment import LiveSegmentationTrainer
 
 if ty.TYPE_CHECKING:
     from l2r.envs.env import RacingEnv
 
 
 class DriverAgent(BaseAgent):
-    def __init__(self, log_data=True):
+    def __init__(self, perform_logging=True, use_ground_truth=False):
         super().__init__()
+        self.perform_logging = perform_logging
+        self.use_ground_truth = use_ground_truth
 
-        self.loggers = (
-            [
-                TensorLogger(name="imu_otx_0001"),
-                TensorLogger(name="camera_front_0001"),
-                TensorLogger(name="segm_front_0001"),
-                TensorLogger(name="camera_left_0001"),
-                TensorLogger(name="segm_left_0001"),
-                TensorLogger(name="camera_right_0001"),
-                TensorLogger(name="segm_right_0001"),
-                TensorLogger(name="camera_birds_0001"),
-                TensorLogger(name="segm_birds_0001"),
-            ]
-            if log_data
-            else []
-        )
+        if perform_logging:
+            self.image_logger = TensorLogger(name="trajectory_0001", fields=('camera_front', 'segm_front', 'imu'))
+        self.segmentation_model = LiveSegmentationTrainer(load=True)
 
     def select_action(self, obs) -> np.array:
         imu = IMUSensorReading(obs[0])
 
-        road_mask = np.all(np.equal(obs[1][1], SEGMENTATION_COLORS_MAP["ROAD"]), axis=2)
-        road_y, road_x = np.where(road_mask)
+        if self.use_ground_truth:
+            road_mask = np.all(np.equal(obs[1][1], SEGMENTATION_COLORS_MAP["ROAD"]), axis=2)
+        else:
+            tensor = torch.from_numpy(obs[1][0].transpose(2, 0, 1) / 255.).unsqueeze(0).float().to(DEVICE)
+            road_mask = self.segmentation_model.model(tensor).squeeze().detach().cpu().numpy()
+
+        road_y, road_x = np.where(road_mask > 0.5)
         road_points = np.stack([road_x, 384 - road_y], axis=1)
 
         recovered_track_points = camera_points_to_car(
@@ -75,13 +68,10 @@ class DriverAgent(BaseAgent):
             obs, _ = env.reset()
 
             while not done:
-                self.loggers[0].log(obs[0])
-                for i in range(len(self.loggers) - 1):
-                    self.loggers[i + 1].log(obs[1][i])
-
-                # plot_camera_points_on_map(obs, env)
-                # plot_track_boundaries_on_camera(obs, env)
-                # plot_local_camera_map(obs)
-
+                if self.perform_logging:
+                    self.image_logger.log(camera_front=obs[1][0], segm_front=obs[1][1], imu=obs[0])
                 action = self.select_action(obs)
                 obs, reward, done, info = env.step(action)
+
+            if self.perform_logging:
+                self.image_logger.save()
