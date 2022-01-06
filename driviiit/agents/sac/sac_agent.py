@@ -18,7 +18,7 @@ from torch.optim import Adam
 from driviiit.interface.metas import BaseAgent
 from agents.sac.sac_models import ActorCritic
 from driviiit.models.vae import VAE
-from driviiit.replay.replay_buffer import ReplayBuffer
+from loggers.replay_buffer import ReplayBuffer
 from driviiit.agents.sac.sac_config import ConfigurationSAC
 from l2r.common.utils import RecordExperience
 from l2r.common.utils import setup_logging

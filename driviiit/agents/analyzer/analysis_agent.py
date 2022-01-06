@@ -24,7 +24,7 @@ if ty.TYPE_CHECKING:
 
 
 class DriverAgent(BaseAgent):
-    def __init__(self, perform_logging=True, use_ground_truth=False):
+    def __init__(self, perform_logging=False, use_ground_truth=False):
         super().__init__()
         self.perform_logging = perform_logging
         self.use_ground_truth = use_ground_truth
@@ -34,7 +34,7 @@ class DriverAgent(BaseAgent):
         self.segmentation_model = LiveSegmentationTrainer(load=True)
 
     def select_action(self, obs) -> np.array:
-        imu = IMUSensorReading(obs[0])
+        current_speed = obs[0] if isinstance(obs[0], int) else IMUSensorReading(obs[0]).speed
 
         if self.use_ground_truth:
             road_mask = np.all(np.equal(obs[1][1], SEGMENTATION_COLORS_MAP["ROAD"]), axis=2)
@@ -47,15 +47,15 @@ class DriverAgent(BaseAgent):
 
         recovered_track_points = camera_points_to_car(
             road_points,
-            IMUSensorReading(obs[0]),
             CAMERA_FRONT_POSITION,
             camera_details_to_intrinsic_matrix(FIELD_OF_VIEW, IMAGE_SHAPE)
         )
-        nearby_points = recovered_track_points[recovered_track_points[:, 1] < 10]
-        position_mean = np.mean(nearby_points[:, 0]) / 5
+        nearby_points = recovered_track_points[recovered_track_points[:, 1] < 15]
+        position_mean = np.mean(nearby_points[:, 0]) / 4
 
         steering_angle = np.clip(position_mean, -1.0, 1.0)
-        acceleration = 1.0 if imu.speed < 15 else (-0.2 if imu.speed > 20 else 0.0)
+        target_speed = 20 - 10 * np.abs(steering_angle)
+        acceleration = np.tanh(target_speed - current_speed)
         return np.array([steering_angle, acceleration])
 
     def register_reset(self, obs) -> np.array:

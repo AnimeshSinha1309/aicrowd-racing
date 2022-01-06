@@ -61,7 +61,7 @@ class EnvConfig(object):
     }
     cameras = {
         "CameraFrontRGB": {
-            "Addr": "tcp://0.0.0.0:8008",
+            "Addr": "tcp://0.0.0.0:8001",
             "Format": "ColorBGR8",
             "FOVAngle": 90,
             "Width": 512,
@@ -69,7 +69,7 @@ class EnvConfig(object):
             "bAutoAdvertise": True,
         },
         "CameraFrontSegm": {
-            "Addr": "tcp://0.0.0.0:9008",
+            "Addr": "tcp://0.0.0.0:9001",
             "Format": "SegmBGR8",
             "FOVAngle": 90,
             "Width": 512,
@@ -77,7 +77,7 @@ class EnvConfig(object):
             "bAutoAdvertise": True,
         },
         "CameraLeftRGB": {
-            "Addr": "tcp://0.0.0.0:8008",
+            "Addr": "tcp://0.0.0.0:8003",
             "Format": "ColorBGR8",
             "FOVAngle": 90,
             "Width": 512,
@@ -85,7 +85,7 @@ class EnvConfig(object):
             "bAutoAdvertise": True,
         },
         "CameraLeftSegm": {
-            "Addr": "tcp://0.0.0.0:9008",
+            "Addr": "tcp://0.0.0.0:9003",
             "Format": "SegmBGR8",
             "FOVAngle": 90,
             "Width": 512,
@@ -93,7 +93,7 @@ class EnvConfig(object):
             "bAutoAdvertise": True,
         },
         "CameraRightRGB": {
-            "Addr": "tcp://0.0.0.0:8008",
+            "Addr": "tcp://0.0.0.0:8004",
             "Format": "ColorBGR8",
             "FOVAngle": 90,
             "Width": 512,
@@ -101,7 +101,7 @@ class EnvConfig(object):
             "bAutoAdvertise": True,
         },
         "CameraRightSegm": {
-            "Addr": "tcp://0.0.0.0:9008",
+            "Addr": "tcp://0.0.0.0:9004",
             "Format": "SegmBGR8",
             "FOVAngle": 90,
             "Width": 512,
@@ -109,7 +109,7 @@ class EnvConfig(object):
             "bAutoAdvertise": True,
         },
         "CameraBirdsEye": {
-            "Addr": "tcp://0.0.0.0:10008",
+            "Addr": "tcp://0.0.0.0:8002",
             "Format": "ColorBGR8",
             "FOVAngle": 90,
             "Width": 512,
@@ -117,7 +117,7 @@ class EnvConfig(object):
             "bAutoAdvertise": True,
         },
         "CameraBirdsEyeSegm": {
-            "Addr": "tcp://0.0.0.0:10009",
+            "Addr": "tcp://0.0.0.0:9002",
             "Format": "SegmBGR8",
             "FOVAngle": 90,
             "Width": 512,

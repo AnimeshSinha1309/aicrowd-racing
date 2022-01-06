@@ -1,4 +1,7 @@
-data/
+data/expert
+data/records/
+data/models/vae_rgb_front.pth
+
 shared/
 logs/
 wandb/

@@ -1,0 +1,15 @@
+data/models/segmentation_unet_resnet18.pth filter=lfs diff=lfs merge=lfs -text
+data/records/trajectory_0001.006.npz filter=lfs diff=lfs merge=lfs -text
+data/records/trajectory_0001.004.npz filter=lfs diff=lfs merge=lfs -text
+data/records/trajectory_0001.003.npz filter=lfs diff=lfs merge=lfs -text
+data/records/trajectory_0001.007.npz filter=lfs diff=lfs merge=lfs -text
+data/records/trajectory_0001.000.npz filter=lfs diff=lfs merge=lfs -text
+data/expert/images.npy filter=lfs diff=lfs merge=lfs -text
+data/models/vae_rgb_front.pth filter=lfs diff=lfs merge=lfs -text
+.git/objects/e4/1535dc0250daff3fd95e3bcdecc80f996dfa5b filter=lfs diff=lfs merge=lfs -text
+.git/objects/pack/pack-1f0474c8be81ee156f09805046acd7b3dda0db1a.pack filter=lfs diff=lfs merge=lfs -text
+wandb/run-20220101_234339-3em1ll3q/files/output.log filter=lfs diff=lfs merge=lfs -text
+wandb/run-20220101_234339-3em1ll3q/run-3em1ll3q.wandb filter=lfs diff=lfs merge=lfs -text
+wandb/run-20211227_044713-1h5pi999/files/output.log filter=lfs diff=lfs merge=lfs -text
+wandb/run-20211227_044713-1h5pi999/run-1h5pi999.wandb filter=lfs diff=lfs merge=lfs -text
+l2r/common/models/vae_144w_42h_32latent.pth filter=lfs diff=lfs merge=lfs -text

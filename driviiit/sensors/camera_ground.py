@@ -108,7 +108,6 @@ def ground_points_to_camera(
 
 def camera_points_to_car(
     points: np.array,
-    imu: IMUSensorReading,
     camera_position: CoordinateTransform,
     camera_intrinsics: np.array
 ) -> np.array:
@@ -161,7 +160,7 @@ def camera_points_to_ground(
     camera_position: CoordinateTransform,
     camera_intrinsics: np.array
 ) -> np.array:
-    pts_car = camera_points_to_car(points, imu, camera_position, camera_intrinsics)
+    pts_car = camera_points_to_car(points, camera_position, camera_intrinsics)
     yaw = imu.position.yaw
     pts_world = pts_car @ np.array([[np.cos(yaw), np.sin(yaw)], [-np.sin(yaw), np.cos(yaw)]]).T
     pts_world = np.array([imu.position.x, imu.position.y]) - pts_world

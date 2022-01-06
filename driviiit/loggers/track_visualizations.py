@@ -84,7 +84,6 @@ def plot_local_camera_map(obs):
 
     recovered_track_points = camera_points_to_car(
         road_points,
-        IMUSensorReading(obs[0]),
         CAMERA_FRONT_POSITION,
         camera_details_to_intrinsic_matrix(FIELD_OF_VIEW, IMAGE_SHAPE)
     )
