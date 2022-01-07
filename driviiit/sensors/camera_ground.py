@@ -4,7 +4,7 @@ import numpy as np
 
 from driviiit.interface.vectors import CoordinateTransform
 from driviiit.sensors.imu_readings import IMUSensorReading
-from sensors.camera_utils import (
+from driviiit.sensors.camera_utils import (
     camera_details_to_intrinsic_matrix,
     euler_angles_to_transformation_matrix,
     apply_homogenous_transform,

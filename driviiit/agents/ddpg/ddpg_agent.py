@@ -3,9 +3,8 @@ import typing as ty
 import numpy as np
 
 from driviiit.interface.metas import BaseAgent
-from driviiit.loggers.tensor_logger import TensorLogger
 from driviiit.sensors.imu_readings import IMUSensorReading
-from sensors.camera_ground import CameraGroundTransformer
+from driviiit.sensors.camera_ground import CameraGroundTransformer
 from driviiit.interface.config import FIELD_OF_VIEW, IMAGE_SHAPE, CAMERA_FRONT_POSITION
 
 if ty.TYPE_CHECKING:
@@ -15,22 +14,6 @@ if ty.TYPE_CHECKING:
 class DriverAgent(BaseAgent):
     def __init__(self, log_data=True):
         super().__init__()
-
-        self.loggers = (
-            [
-                TensorLogger(name="imu_otx_0001"),
-                TensorLogger(name="camera_front_0001"),
-                TensorLogger(name="segm_front_0001"),
-                TensorLogger(name="camera_left_0001"),
-                TensorLogger(name="segm_left_0001"),
-                TensorLogger(name="camera_right_0001"),
-                TensorLogger(name="segm_right_0001"),
-                TensorLogger(name="camera_birds_0001"),
-                TensorLogger(name="segm_birds_0001"),
-            ]
-            if log_data
-            else []
-        )
         self.cg = CameraGroundTransformer(
             FIELD_OF_VIEW, IMAGE_SHAPE, CAMERA_FRONT_POSITION
         )
@@ -56,8 +39,5 @@ class DriverAgent(BaseAgent):
             obs, _ = env.reset()
 
             while not done:
-                self.loggers[0].log(obs[0])
-                for i in range(len(self.loggers)):
-                    self.loggers[i + 1].log(obs[1][i])
                 action = self.select_action(obs)
                 obs, reward, done, info = env.step(action)

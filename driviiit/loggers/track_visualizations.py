@@ -7,13 +7,13 @@ from driviiit.interface.config import (
     IMAGE_SHAPE,
     SEGMENTATION_COLORS_MAP,
 )
-from sensors.camera_ground import (
+from driviiit.sensors.camera_ground import (
     ground_points_to_camera,
     camera_points_to_ground,
     camera_points_to_car,
 )
 from driviiit.sensors.imu_readings import IMUSensorReading
-from sensors.camera_utils import camera_details_to_intrinsic_matrix
+from driviiit.sensors.camera_utils import camera_details_to_intrinsic_matrix
 
 
 def plot_track_boundaries_on_camera(obs, env):
