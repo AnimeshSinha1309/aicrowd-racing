@@ -1,4 +1,4 @@
-from driviiit.agents.analyzer.analysis_agent import DriverAgent
+from driviiit.agents.mapped.analysis_agent import DriverAgent
 
 
 class SubmissionConfig(object):
@@ -31,8 +31,8 @@ class EnvConfig(object):
     action_if_kwargs = {
         "max_accel": 6,
         "min_accel": -16,
-        "max_steer": .3,
-        "min_steer": -.3,
+        "max_steer": 0.3,
+        "min_steer": -0.3,
         "ip": "0.0.0.0",
         "port": 7077,
     }
@@ -44,18 +44,9 @@ class EnvConfig(object):
         "ip": "0.0.0.0",
         "port": 8008,
     }
-    segm_if_kwargs = {
-        "ip": 'tcp://127.0.0.1',
-        "port": 8009
-    }
-    birdseye_if_kwargs = {
-        "ip": 'tcp://127.0.0.1',
-        "port": 8010
-    }
-    birdseye_segm_if_kwargs = {
-        "ip": 'tcp://127.0.0.1',
-        "port": 8011
-    }
+    segm_if_kwargs = {"ip": "tcp://127.0.0.1", "port": 8009}
+    birdseye_if_kwargs = {"ip": "tcp://127.0.0.1", "port": 8010}
+    birdseye_segm_if_kwargs = {"ip": "tcp://127.0.0.1", "port": 8011}
     logger_kwargs = {
         "default": True,
     }
@@ -123,7 +114,7 @@ class EnvConfig(object):
             "Width": 512,
             "Height": 384,
             "bAutoAdvertise": True,
-        }
+        },
     }
 
 

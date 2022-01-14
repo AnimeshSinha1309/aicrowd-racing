@@ -5,7 +5,9 @@ import numpy as np
 from driviiit.interface.vectors import CoordinateTransform
 
 
-def camera_details_to_intrinsic_matrix(field_of_view: float, image_shape: ty.Tuple[int, int]):
+def camera_details_to_intrinsic_matrix(
+    field_of_view: float, image_shape: ty.Tuple[int, int]
+):
     """
     Generate camera intrinsics matrix from the angular field of view and shape of the image
     :type field_of_view: float
@@ -61,9 +63,7 @@ def euler_angles_to_transformation_matrix(coordinate_transform: CoordinateTransf
                     else x == y
                 )
         net_rotation = cur_rotation @ net_rotation
-    transform = np.concatenate(
-        [net_rotation, np.expand_dims(shift, axis=1)], axis=1
-    )
+    transform = np.concatenate([net_rotation, np.expand_dims(shift, axis=1)], axis=1)
     return transform
 
 
@@ -77,7 +77,11 @@ def apply_homogenous_transform(transform_matrix: np.array, points: np.array):
     if transform_matrix.shape[1] != points.shape[1]:
         points = np.concatenate([points, np.ones((len(points), 1))], axis=1)
     points = points @ transform_matrix.T
-    points = points[:, :-1] / points[:, -1:] if transform_matrix.shape[0] == transform_matrix.shape[1] else points
+    points = (
+        points[:, :-1] / points[:, -1:]
+        if transform_matrix.shape[0] == transform_matrix.shape[1]
+        else points
+    )
     return points
 
 

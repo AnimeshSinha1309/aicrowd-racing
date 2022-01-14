@@ -82,7 +82,7 @@ def ground_points_to_camera(
     track: np.array,
     imu: IMUSensorReading,
     camera_position: CoordinateTransform,
-    camera_intrinsics: np.array
+    camera_intrinsics: np.array,
 ) -> np.array:
     """
     Converts points on the ground to their corresponding points in the image frame
@@ -107,9 +107,7 @@ def ground_points_to_camera(
 
 
 def camera_points_to_car(
-    points: np.array,
-    camera_position: CoordinateTransform,
-    camera_intrinsics: np.array
+    points: np.array, camera_position: CoordinateTransform, camera_intrinsics: np.array
 ) -> np.array:
     """
     Function to map image points from a camera to their actual 3d coordinates
@@ -138,8 +136,16 @@ def camera_points_to_car(
     y = camera_position.z  # height from the ground plane, in camera frame it's y
 
     im_x, im_y = points[:, 0], points[:, 1]
-    a1, b1, c1 = k[0, 0] - k[2, 0] * im_x, k[0, 1] - k[2, 1] * im_x, k[0, 2] - k[2, 2] * im_x
-    a2, b2, c2 = k[1, 0] - k[2, 0] * im_y, k[1, 1] - k[2, 1] * im_y, k[1, 2] - k[2, 2] * im_y
+    a1, b1, c1 = (
+        k[0, 0] - k[2, 0] * im_x,
+        k[0, 1] - k[2, 1] * im_x,
+        k[0, 2] - k[2, 2] * im_x,
+    )
+    a2, b2, c2 = (
+        k[1, 0] - k[2, 0] * im_y,
+        k[1, 1] - k[2, 1] * im_y,
+        k[1, 2] - k[2, 2] * im_y,
+    )
     x = (c1 * b2 - c2 * b1) * y / (c2 * a1 - c1 * a2)
     z = (a1 * b2 - a2 * b1) * y / (a2 * c1 - a1 * c2)
     # Mask out the low reliability points, only keep the ones we are sure of
@@ -148,7 +154,9 @@ def camera_points_to_car(
     pts_ground = np.stack([x, z, np.full(shape=len(x), fill_value=y)], axis=1)
     # Rotate and translate using the camera pose and the car pose
     rt = euler_angles_to_transformation_matrix(camera_position)
-    rt[2, 3] = 0  # We already lifted the frame for the camera, so z axis should be left as it
+    rt[
+        2, 3
+    ] = 0  # We already lifted the frame for the camera, so z axis should be left as it
     pts_car = apply_homogenous_transform(rt, pts_ground)
     pts_car = pts_car[:, :2]
     return pts_car
@@ -158,10 +166,12 @@ def camera_points_to_ground(
     points: np.array,
     imu: IMUSensorReading,
     camera_position: CoordinateTransform,
-    camera_intrinsics: np.array
+    camera_intrinsics: np.array,
 ) -> np.array:
     pts_car = camera_points_to_car(points, camera_position, camera_intrinsics)
     yaw = imu.position.yaw
-    pts_world = pts_car @ np.array([[np.cos(yaw), np.sin(yaw)], [-np.sin(yaw), np.cos(yaw)]]).T
+    pts_world = (
+        pts_car @ np.array([[np.cos(yaw), np.sin(yaw)], [-np.sin(yaw), np.cos(yaw)]]).T
+    )
     pts_world = np.array([imu.position.x, imu.position.y]) - pts_world
     return pts_world

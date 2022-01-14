@@ -18,4 +18,4 @@ SEGMENTATION_COLORS_MAP = {
     "ROAD": np.array([204, 80, 109]),
 }
 
-DEVICE = torch.device('cuda')
+DEVICE = torch.device("cuda")

@@ -30,17 +30,30 @@ class DriverAgent(BaseAgent):
         self.use_ground_truth = use_ground_truth
 
         if perform_logging:
-            self.image_logger = TensorLogger(name="trajectory_0001", fields=('camera_front', 'segm_front', 'imu'))
+            self.image_logger = TensorLogger(
+                name="trajectory_0001", fields=("camera_front", "segm_front", "imu")
+            )
         self.segmentation_model = LiveSegmentationTrainer(load=True)
 
     def select_action(self, obs) -> np.array:
-        current_speed = obs[0] if isinstance(obs[0], int) else IMUSensorReading(obs[0]).speed
+        current_speed = (
+            obs[0] if isinstance(obs[0], int) else IMUSensorReading(obs[0]).speed
+        )
 
         if self.use_ground_truth:
-            road_mask = np.all(np.equal(obs[1][1], SEGMENTATION_COLORS_MAP["ROAD"]), axis=2)
+            road_mask = np.all(
+                np.equal(obs[1][1], SEGMENTATION_COLORS_MAP["ROAD"]), axis=2
+            )
         else:
-            tensor = torch.from_numpy(obs[1][0].transpose(2, 0, 1) / 255.).unsqueeze(0).float().to(DEVICE)
-            road_mask = self.segmentation_model.model(tensor).squeeze().detach().cpu().numpy()
+            tensor = (
+                torch.from_numpy(obs[1][0].transpose(2, 0, 1) / 255.0)
+                .unsqueeze(0)
+                .float()
+                .to(DEVICE)
+            )
+            road_mask = (
+                self.segmentation_model.model(tensor).squeeze().detach().cpu().numpy()
+            )
 
         road_y, road_x = np.where(road_mask > 0.5)
         road_points = np.stack([road_x, 384 - road_y], axis=1)
@@ -48,7 +61,7 @@ class DriverAgent(BaseAgent):
         recovered_track_points = camera_points_to_car(
             road_points,
             CAMERA_FRONT_POSITION,
-            camera_details_to_intrinsic_matrix(FIELD_OF_VIEW, IMAGE_SHAPE)
+            camera_details_to_intrinsic_matrix(FIELD_OF_VIEW, IMAGE_SHAPE),
         )
         nearby_points = recovered_track_points[recovered_track_points[:, 1] < 15]
         position_mean = np.mean(nearby_points[:, 0]) / 4
@@ -69,7 +82,9 @@ class DriverAgent(BaseAgent):
 
             while not done:
                 if self.perform_logging:
-                    self.image_logger.log(camera_front=obs[1][0], segm_front=obs[1][1], imu=obs[0])
+                    self.image_logger.log(
+                        camera_front=obs[1][0], segm_front=obs[1][1], imu=obs[0]
+                    )
                 action = self.select_action(obs)
                 obs, reward, done, info = env.step(action)
 

@@ -4,8 +4,10 @@ import numpy as np
 
 
 class TensorLogger:
-    def __init__(self, name=None, fields: ty.Tuple[str, ...] = ('tensor',)):
-        self.name = name if name is not None else f"tensor_log_{np.random.randint(99999):08}"
+    def __init__(self, name=None, fields: ty.Tuple[str, ...] = ("tensor",)):
+        self.name = (
+            name if name is not None else f"tensor_log_{np.random.randint(99999):08}"
+        )
         self.fields = fields
         self.tensors = {field: [] for field in fields}
         self.size_limit = 100000

@@ -21,23 +21,23 @@ def plot_track_boundaries_on_camera(obs, env):
         env.reward.inner_track,
         IMUSensorReading(obs[0]),
         CAMERA_FRONT_POSITION,
-        camera_details_to_intrinsic_matrix(FIELD_OF_VIEW, IMAGE_SHAPE)
+        camera_details_to_intrinsic_matrix(FIELD_OF_VIEW, IMAGE_SHAPE),
     )
     y = ground_points_to_camera(
         env.reward.centre_path,
         IMUSensorReading(obs[0]),
         CAMERA_FRONT_POSITION,
-        camera_details_to_intrinsic_matrix(FIELD_OF_VIEW, IMAGE_SHAPE)
+        camera_details_to_intrinsic_matrix(FIELD_OF_VIEW, IMAGE_SHAPE),
     )
     z = ground_points_to_camera(
         env.reward.outside_track,
         IMUSensorReading(obs[0]),
         CAMERA_FRONT_POSITION,
-        camera_details_to_intrinsic_matrix(FIELD_OF_VIEW, IMAGE_SHAPE)
+        camera_details_to_intrinsic_matrix(FIELD_OF_VIEW, IMAGE_SHAPE),
     )
-    plt.scatter(x[:, 0], 384 - x[:, 1], s=1, color='purple')
-    plt.scatter(y[:, 0], 384 - y[:, 1], s=1, color='yellow')
-    plt.scatter(z[:, 0], 384 - z[:, 1], s=1, color='black')
+    plt.scatter(x[:, 0], 384 - x[:, 1], s=1, color="purple")
+    plt.scatter(y[:, 0], 384 - y[:, 1], s=1, color="yellow")
+    plt.scatter(z[:, 0], 384 - z[:, 1], s=1, color="black")
     plt.imshow(obs[1][1])
     plt.xlim(0, 512)
     plt.ylim(384, 0)
@@ -49,9 +49,12 @@ def plot_camera_points_on_map(obs, env):
         env.reward.inner_track,
         IMUSensorReading(obs[0]),
         CAMERA_FRONT_POSITION,
-        camera_details_to_intrinsic_matrix(FIELD_OF_VIEW, IMAGE_SHAPE)
+        camera_details_to_intrinsic_matrix(FIELD_OF_VIEW, IMAGE_SHAPE),
     )
-    mask = np.logical_and(np.logical_and(x[:, 0] >= 0, x[:, 1] >= 0), np.logical_and(x[:, 0] < 512, x[:, 1] < 384))
+    mask = np.logical_and(
+        np.logical_and(x[:, 0] >= 0, x[:, 1] >= 0),
+        np.logical_and(x[:, 0] < 512, x[:, 1] < 384),
+    )
     x = x[mask]
 
     road_mask = np.all(np.equal(obs[1][1], SEGMENTATION_COLORS_MAP["ROAD"]), axis=2)
@@ -62,17 +65,26 @@ def plot_camera_points_on_map(obs, env):
         road_points,
         IMUSensorReading(obs[0]),
         CAMERA_FRONT_POSITION,
-        camera_details_to_intrinsic_matrix(FIELD_OF_VIEW, IMAGE_SHAPE)
+        camera_details_to_intrinsic_matrix(FIELD_OF_VIEW, IMAGE_SHAPE),
     )
     recovered_center_points = camera_points_to_ground(
         x,
         IMUSensorReading(obs[0]),
         CAMERA_FRONT_POSITION,
-        camera_details_to_intrinsic_matrix(FIELD_OF_VIEW, IMAGE_SHAPE)
+        camera_details_to_intrinsic_matrix(FIELD_OF_VIEW, IMAGE_SHAPE),
     )
-    plt.scatter(env.reward.inner_track[:, 0], env.reward.inner_track[:, 1], s=0.1, color='green')
-    plt.scatter(recovered_track_points[:, 0], recovered_track_points[:, 1], s=0.2, color='red')
-    plt.scatter(recovered_center_points[:, 0], recovered_center_points[:, 1], s=0.2, color='orange')
+    plt.scatter(
+        env.reward.inner_track[:, 0], env.reward.inner_track[:, 1], s=0.1, color="green"
+    )
+    plt.scatter(
+        recovered_track_points[:, 0], recovered_track_points[:, 1], s=0.2, color="red"
+    )
+    plt.scatter(
+        recovered_center_points[:, 0],
+        recovered_center_points[:, 1],
+        s=0.2,
+        color="orange",
+    )
     plt.show()
     return 0
 
@@ -85,8 +97,10 @@ def plot_local_camera_map(obs):
     recovered_track_points = camera_points_to_car(
         road_points,
         CAMERA_FRONT_POSITION,
-        camera_details_to_intrinsic_matrix(FIELD_OF_VIEW, IMAGE_SHAPE)
+        camera_details_to_intrinsic_matrix(FIELD_OF_VIEW, IMAGE_SHAPE),
     )
-    plt.scatter(recovered_track_points[:, 0], recovered_track_points[:, 1], s=0.2, color='red')
+    plt.scatter(
+        recovered_track_points[:, 0], recovered_track_points[:, 1], s=0.2, color="red"
+    )
     plt.show()
     return 0
